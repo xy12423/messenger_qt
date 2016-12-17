@@ -4,19 +4,15 @@
 #include <cstdint>
 #include <cstring>
 #include <cctype>
-#include <climits>
 #include <cstdlib>
 #include <ctime>
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
 
-#include <string>
 #include <list>
 #include <vector>
-#include <set>
-#include <map>
+#include <string>
 #include <unordered_set>
 #include <unordered_map>
 
@@ -25,6 +21,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <utility>
 
 #include <boost/filesystem.hpp>
@@ -43,9 +40,9 @@ namespace asio = boost::asio;
 
 #ifdef _MSC_VER
 #ifdef _DEBUG
-#pragma comment (lib, "cryptlibd.lib")
+#pragma comment (lib, "cryptlibd-md.lib")
 #else
-#pragma comment (lib, "cryptlib.lib")
+#pragma comment (lib, "cryptlib-md.lib")
 #endif
 #pragma comment (lib, "ws2_32.lib")
 #pragma comment (lib, "winmm.lib")
@@ -62,4 +59,17 @@ namespace asio = boost::asio;
 
 #if (!defined(__linux__)) && (defined(__linux))
 #define __linux__
+#endif
+
+#ifdef NO_STD_TOSTRING
+#include <cstdio>
+namespace std
+{
+    inline string to_string(int n)
+    {
+        char buf[11];
+        sprintf(buf, "%d", n);
+        return std::string(buf);
+    }
+}
 #endif

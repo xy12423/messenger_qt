@@ -4,34 +4,36 @@ import QtQuick.Layouts 1.0
 
 ApplicationWindow {
     visible: true
-    width: 640
+    width: 320
     height: 480
-    title: qsTr("Hello World")
+    title: qsTr("messenger")
 
     SwipeView {
         id: swipeView
         anchors.fill: parent
         currentIndex: tabBar.currentIndex
 
-        Page1 {
+        PageJoin {
         }
 
-        Page {
-            Label {
-                text: qsTr("Second page")
-                anchors.centerIn: parent
-            }
+        PageList {
+        }
+
+        PageChat {
         }
     }
 
-    footer: TabBar {
+    header: TabBar {
         id: tabBar
         currentIndex: swipeView.currentIndex
         TabButton {
-            text: qsTr("First")
+            text: qsTr("Connect to")
         }
         TabButton {
-            text: qsTr("Second")
+            text: qsTr("User list")
+        }
+        TabButton {
+            text: qsTr("Chat")
         }
     }
 }

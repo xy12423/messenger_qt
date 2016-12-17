@@ -3,6 +3,8 @@
 #ifndef _H_CRYP
 #define _H_CRYP
 
+#include "stdafx.h"
+
 typedef uint64_t rand_num_type;
 constexpr size_t hash_size = 64;
 constexpr size_t sym_key_size = 32;

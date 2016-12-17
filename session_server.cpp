@@ -25,6 +25,7 @@ void server::do_start()
 			std::unique_lock<std::mutex> lock(pre_session_mutex);
 			pre_sessions.emplace(pre_session_s_ptr);
 			lock.unlock();
+			pre_session_s_ptr->start();
 		}
 
 		do_start();
@@ -68,7 +69,7 @@ void server::join(const session_ptr& _user, user_id_type& uid)
 
 	misc_io_service.post([this, newID, _user]() {
 		try { on_join(newID, _user->get_key()); }
-		catch (std::exception &ex) { std::cerr << ex.what() << std::endl; }
+		catch (std::exception &ex) { on_exception(ex); }
 		catch (...) {}
 	});
 }
@@ -85,7 +86,7 @@ void server::leave(user_id_type _user)
 
 	misc_io_service.post([this, _user]() {
 		try { on_leave(_user); }
-		catch (std::exception &ex) { std::cerr << ex.what() << std::endl; }
+		catch (std::exception &ex) { on_exception(ex); }
 		catch (...) {}
 	});
 
@@ -107,7 +108,7 @@ void server::on_recv_data(user_id_type id, const std::shared_ptr<std::string>& d
 	session_ptr this_session = itr->second;
 	misc_io_service.post([this, id, data]() {
 		try { on_data(id, *data); }
-		catch (std::exception &ex) { std::cerr << ex.what() << std::endl; }
+		catch (std::exception &ex) { on_exception(ex); }
 		catch (...) {}
 	});
 }
@@ -166,7 +167,10 @@ void server::connect(const asio::ip::tcp::endpoint& remote_endpoint)
 			if (!ec)
 			{
 				std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service));
+				std::unique_lock<std::mutex> lock(pre_session_mutex);
 				pre_sessions.emplace(pre_session_c_ptr);
+				lock.unlock();
+				pre_session_c_ptr->start();
 			}
 			else
 			{
@@ -196,7 +200,7 @@ void server::connect(const asio::ip::tcp::resolver::query& query)
 			socket_ptr socket = std::make_shared<asio::ip::tcp::socket>(main_io_service);
 
 			asio::async_connect(*socket, itr, asio::ip::tcp::resolver::iterator(),
-				[this, local_port, socket](const boost::system::error_code& ec, asio::ip::tcp::resolver::iterator next)->asio::ip::tcp::resolver::iterator
+				[this, local_port, socket](const boost::system::error_code&, asio::ip::tcp::resolver::iterator next)->asio::ip::tcp::resolver::iterator
 			{
 				asio::ip::tcp::endpoint::protocol_type ip_protocol = next->endpoint().protocol();
 				socket->close();
@@ -209,7 +213,10 @@ void server::connect(const asio::ip::tcp::resolver::query& query)
 				if (!ec)
 				{
 					std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service));
+					std::unique_lock<std::mutex> lock(pre_session_mutex);
 					pre_sessions.emplace(pre_session_c_ptr);
+					lock.unlock();
+					pre_session_c_ptr->start();
 				}
 				else
 				{
