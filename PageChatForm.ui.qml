@@ -9,6 +9,7 @@ Item {
     property alias text_content: text_content
     property alias text_input: text_input
     property alias button_send: button_send
+    property alias flickable_chat: flickable_chat
 
     ColumnLayout {
         id: columnLayout_pagechat

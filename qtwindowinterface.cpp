@@ -2,13 +2,17 @@
 #include "crypto.h"
 #include "main.h"
 
+fs::path TEMP_PATH, DATA_PATH;
 const QString EmptyQString;
 
 QtWindowInterface::QtWindowInterface()
 {
-    if (fs::exists(IMG_TMP_PATH_NAME))
-        fs::remove_all(IMG_TMP_PATH_NAME);
-    fs::create_directories(IMG_TMP_PATH_NAME);
+    TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation).toStdWString();
+    DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdWString();
+
+    if (!fs::exists(DATA_PATH))
+        fs::create_directories(DATA_PATH);
+    fs::current_path(DATA_PATH);
 
     port_type portListen = 4826;
     port_type portsBegin = 5000, portsEnd = 9999;
@@ -48,8 +52,6 @@ QtWindowInterface::~QtWindowInterface()
 
     srv.reset();
     crypto_srv.reset();
-
-    fs::remove_all(IMG_TMP_PATH_NAME);
 }
 
 void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg)
@@ -189,9 +191,9 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
         ret.append("</b><pre>\n</pre>");
         if (itr->is_image)
         {
-            ret.append("<img src=\"");
+            ret.append("<img src=\"file:/");
             ret.append(itr->image.string().c_str());
-            ret.append("\">");
+            ret.append("\" />");
         }
         else
         {

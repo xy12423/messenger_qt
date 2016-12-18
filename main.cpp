@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "main.h"

@@ -38,6 +38,9 @@ namespace asio = boost::asio;
 #include <cryptopp/oids.h>
 #include <cryptopp/modes.h>
 
+#include <QGuiApplication>
+#include <QtQml>
+
 #ifdef _MSC_VER
 #ifdef _DEBUG
 #pragma comment (lib, "cryptlibd-md.lib")

@@ -4,7 +4,8 @@ PageChatForm {
     Connections {
         target: cppInterface;
         onRefreshChat: {
-            text_content.text = content
+            text_content.clear()
+            text_content.append(content)
         }
     }
 

@@ -1,12 +1,11 @@
-#include <QGuiApplication>
-#include <QtQml>
-
 #include "stdafx.h"
 #include "main.h"
 
 //extern FileSendThread *threadFileSend;
+extern fs::path TEMP_PATH, DATA_PATH;
 const char* IMG_TMP_PATH_NAME = ".messenger_tmp";
 const char* IMG_TMP_FILE_NAME = ".messenger_tmp_";
+fs::path IMG_TMP_PATH;
 
 const char* privatekeyFile = ".privatekey";
 const char* publickeysFile = ".publickey";
@@ -30,12 +29,40 @@ struct data_view
     }
     inline void read(char* dst, size_t _size) { if (size < _size) throw(qt_srv_interface_error()); memcpy(dst, data, _size); data += _size; size -= _size; }
     inline void read(std::string& dst, size_t _size) { if (size < _size) throw(qt_srv_interface_error()); dst.append(data, _size); data += _size; size -= _size; }
-    inline void check(size_t count) { if (size < count) throw(qt_srv_interface_error()); }
+    inline void check(size_t count) const { if (size < count) throw(qt_srv_interface_error()); }
+    inline bool check_bool(size_t count) const { if (size < count) return false; return true; }
     inline void skip(size_t count) { if (size < count) throw(qt_srv_interface_error()); data += count; size -= count; }
 
     const char* data;
     size_t size;
 };
+
+/*
+bool compare_header(const data_view& data, const char* header)
+{
+    for (const char* data_itr = data.data; *header != '\0'; ++header, ++data_itr)
+        if (*data_itr != *header)
+            return false;
+    return true;
+}
+
+std::string get_pic_extension(const data_view& data)
+{
+    const char *BMP_HEADER = "\x42\x4D",
+            *PNG_HEADER = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
+            *JPG_HEADER = "\xFF\xD8\xFF\xE0",
+            *GIF_HEADER = "\x47\x49\x46";
+    if (data.check_bool(2) && compare_header(data, BMP_HEADER))
+        return ".bmp";
+    if (data.check_bool(8) && compare_header(data, PNG_HEADER))
+        return ".png";
+    if (data.check_bool(4) && compare_header(data, JPG_HEADER))
+        return ".jpg";
+    if (data.check_bool(3) && compare_header(data, GIF_HEADER))
+        return ".gif";
+    return "";
+}
+*/
 
 qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     asio::io_service& _misc_io_service,
@@ -44,6 +71,11 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     QtWindowInterface *_window)
     :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _crypto_srv), window(*_window)
 {
+    IMG_TMP_PATH = TEMP_PATH / IMG_TMP_PATH_NAME;
+    if (fs::exists(IMG_TMP_PATH))
+        fs::remove_all(IMG_TMP_PATH);
+    fs::create_directories(IMG_TMP_PATH);
+
     if (fs::exists(publickeysFile))
     {
         std::ifstream fin(publickeysFile, std::ios_base::in | std::ios_base::binary);
@@ -90,6 +122,8 @@ qt_srv_interface::~qt_srv_interface()
     }
 
     fout.close();
+
+    fs::remove_all(IMG_TMP_PATH);
 }
 
 void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
@@ -175,7 +209,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
 
                 int next_image_id;
                 new_image_id(next_image_id);
-                fs::path image_path = IMG_TMP_PATH_NAME;
+                fs::path image_path = IMG_TMP_PATH;
                 image_path /= std::to_string(id);
                 image_path /= ".messenger_tmp_" + std::to_string(next_image_id);
 
@@ -207,7 +241,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
 
 void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 {
-    fs::path tmp_path = IMG_TMP_PATH_NAME;
+    fs::path tmp_path = IMG_TMP_PATH;
     tmp_path /= std::to_string(id);
     fs::create_directories(tmp_path);
 
@@ -218,7 +252,7 @@ void qt_srv_interface::on_leave(user_id_type id)
 {
     window.Leave(id);
 
-    fs::path tmp_path = IMG_TMP_PATH_NAME;
+    fs::path tmp_path = IMG_TMP_PATH;
     tmp_path /= std::to_string(id);
     fs::remove_all(tmp_path);
 }
