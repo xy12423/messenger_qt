@@ -24,11 +24,14 @@
 #include <thread>
 #include <utility>
 
-#include <boost/filesystem.hpp>
+#ifdef ANDROID
+#include <asio.hpp>
+#else
 #include <boost/asio.hpp>
-#include <boost/endian/conversion.hpp>
-namespace fs = boost::filesystem;
 namespace asio = boost::asio;
+#endif
+
+#include <boost/endian/conversion.hpp>
 
 #include <cryptopp/cryptlib.h>
 #include <cryptopp/eccrypto.h>
@@ -39,7 +42,7 @@ namespace asio = boost::asio;
 #include <cryptopp/modes.h>
 
 #include <QGuiApplication>
-#include <QtQml>
+#include <QDir>
 
 #ifdef _MSC_VER
 #ifdef _DEBUG
@@ -64,11 +67,11 @@ namespace asio = boost::asio;
 #define __linux__
 #endif
 
-#ifdef NO_STD_TOSTRING
+#ifdef ANDROID
 #include <cstdio>
 namespace std
 {
-    inline string to_string(int n)
+    inline std::string to_string(int n)
     {
         char buf[11];
         sprintf(buf, "%d", n);

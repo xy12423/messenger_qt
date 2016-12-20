@@ -7,33 +7,36 @@ using namespace msgr_proto;
 
 void proto_kit::do_enc()
 {
+#ifndef _NO_CRYPTO
 	std::string &data = enc_task_que.front().data;
 	std::string &write_raw = data, write_data;
 	rand_num_type rand_num = get_rand_num_send();
 	write_raw.reserve(sizeof(session_id_type) + sizeof(rand_num_type) + write_raw.size() + hash_size);
 	write_raw.append(reinterpret_cast<char*>(&session_id), sizeof(session_id_type));
 	write_raw.append(reinterpret_cast<const char*>(&rand_num), sizeof(rand_num_type));
-	hash(write_raw, write_raw);
+    helper.hash(write_raw, write_raw);
 
-	sym_encrypt(write_raw, write_data, e);
-	encrypt(write_data, write_raw, e1);
-	insLen(write_raw);
+    helper.sym_encrypt(write_raw, write_data, e);
+    helper.encrypt(write_data, write_raw, e1);
+    insLen(write_raw);
+#endif
 
 	enc_task_que.front().callback(true, empty_string);
 }
 
 void proto_kit::do_dec()
 {
+#ifndef _NO_CRYPTO
 	std::string &data = dec_task_que.front().data;
 	std::string decrypted_data;
 
-	decrypt(data, decrypted_data, d0);
-	sym_decrypt(decrypted_data, data, d);
+    helper.decrypt(data, decrypted_data, d0);
+    helper.sym_decrypt(decrypted_data, data, d);
 
 	const char *itr = data.data() + data.size() - hash_size;
 
 	std::string hash_real;
-	hash(data, hash_real, hash_size);
+    helper.hash(data, hash_real, hash_size);
 	
 	try
 	{
@@ -57,8 +60,11 @@ void proto_kit::do_dec()
 	}
 
 	data.erase(data.size() - (sizeof(session_id_type) + sizeof(rand_num_type) + hash_size));
+#endif
 	dec_task_que.front().callback(true, empty_string);
 }
+
+#ifndef _NO_CRYPTO
 
 void pre_session::read_key_header()
 {
@@ -66,7 +72,7 @@ void pre_session::read_key_header()
 	asio::async_read(*socket,
 		asio::buffer(reinterpret_cast<char*>(&(this->key_size)), sizeof(key_size_type)),
 		asio::transfer_exactly(sizeof(key_size_type)),
-        [this, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -93,7 +99,7 @@ void pre_session::read_key()
 	asio::async_read(*socket,
 		asio::buffer(key_buffer.get(), key_size),
 		asio::transfer_exactly(key_size),
-        [this, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -123,8 +129,8 @@ void pre_session::write_secret()
 		std::shared_ptr<std::string> buf = std::make_shared<std::string>();
 		try
 		{
-			dhGen(priv, pubA);
-			encrypt(pubA.BytePtr(), pubA.SizeInBytes(), *buf, e1);
+            helper.dhGen(priv, pubA);
+            helper.encrypt(pubA.BytePtr(), pubA.SizeInBytes(), *buf, e1);
 			key_size_type len = boost::endian::native_to_little(static_cast<key_size_type>(buf->size()));
 			buf->insert(0, reinterpret_cast<const char*>(&len), sizeof(key_size_type));
 		}
@@ -139,7 +145,7 @@ void pre_session::write_secret()
 
 		asio::async_write(*socket,
 			asio::buffer(buf->data(), buf->size()),
-			[this, buf, watcher_holder](boost::system::error_code ec, std::size_t)
+			[this, buf, watcher_holder](const error_code_type& ec, std::size_t)
 		{
 			try
 			{
@@ -165,7 +171,7 @@ void pre_session::read_secret_header()
 	asio::async_read(*socket,
 		asio::buffer(reinterpret_cast<char*>(&(this->pubB_size)), sizeof(key_size_type)),
 		asio::transfer_exactly(sizeof(key_size_type)),
-        [this, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -192,7 +198,7 @@ void pre_session::read_secret()
 	asio::async_read(*socket,
 		asio::buffer(pubB_buffer.get(), pubB_size),
 		asio::transfer_exactly(pubB_size),
-		[this, watcher_holder](boost::system::error_code ec, std::size_t)
+		[this, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		if (ec)
 		{
@@ -203,8 +209,8 @@ void pre_session::read_secret()
 		misc_io_service.post([this, watcher_holder]() {
 			try
 			{
-				decrypt(reinterpret_cast<byte*>(pubB_buffer.get()), pubB_size, pubB, GetPublicKey());
-				if (!dhAgree(key, priv, pubB))
+                helper.decrypt(reinterpret_cast<byte*>(pubB_buffer.get()), pubB_size, pubB, helper.GetPublicKey());
+                if (!helper.dhAgree(key, priv, pubB))
 					throw(std::runtime_error("Failed to reach shared secret"));
 				write_iv();
 			}
@@ -222,10 +228,10 @@ void pre_session::write_iv()
 	std::shared_ptr<pre_session_watcher> watcher_holder(watcher);
 
 	std::shared_ptr<CryptoPP::SecByteBlock> iv = std::make_shared<CryptoPP::SecByteBlock>(sym_key_size);
-	init_sym_encryption(e, key, *iv);
+    helper.init_sym_encryption(e, key, *iv);
 	asio::async_write(*socket,
 		asio::buffer(reinterpret_cast<char*>(iv->data()), iv->SizeInBytes()),
-		[this, watcher_holder, iv](boost::system::error_code ec, std::size_t)
+		[this, watcher_holder, iv](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -250,13 +256,13 @@ void pre_session::read_iv()
 	asio::async_read(*socket,
 		asio::buffer(reinterpret_cast<char*>(iv_buffer), sym_key_size),
 		asio::transfer_exactly(sym_key_size),
-        [this, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
 			if (ec)
 				throw(std::runtime_error("Socket Error:" + ec.message()));
-			init_sym_decryption(d, key, CryptoPP::SecByteBlock(iv_buffer, sym_key_size));
+            helper.init_sym_decryption(d, key, CryptoPP::SecByteBlock(iv_buffer, sym_key_size));
 			stage2();
 		}
 		catch (std::exception &ex)
@@ -276,7 +282,7 @@ void pre_session::read_session_id(int check_level, bool ignore_error)
 	asio::async_read(*socket,
 		asio::buffer(reinterpret_cast<char*>(&sid_packet_size), sizeof(data_size_type)),
 		asio::transfer_exactly(sizeof(data_size_type)),
-        [this, watcher_holder, check_level, ignore_error](boost::system::error_code ec, std::size_t)
+        [this, watcher_holder, check_level, ignore_error](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -305,7 +311,7 @@ void pre_session::read_session_id_body(int check_level)
 	asio::async_read(*socket,
 		asio::buffer(sid_packet_buffer.get(), sid_packet_size),
 		asio::transfer_exactly(sid_packet_size),
-		[this, watcher_holder, check_level](boost::system::error_code ec, std::size_t)
+		[this, watcher_holder, check_level](const error_code_type& ec, std::size_t)
 	{
 		if (ec)
 		{
@@ -319,11 +325,11 @@ void pre_session::read_session_id_body(int check_level)
 			try
 			{
 				std::string raw_data, data(sid_packet_buffer.get(), sid_packet_size);
-				decrypt(data, raw_data, GetPublicKey());
-				sym_decrypt(raw_data, data, d);
+                helper.decrypt(data, raw_data, helper.GetPublicKey());
+                helper.sym_decrypt(raw_data, data, d);
 
 				std::string hash_recv(data, data.size() - hash_size), hash_real;
-				hash(data, hash_real, hash_size);
+                helper.hash(data, hash_real, hash_size);
 				if (hash_recv != hash_real)
 					throw(msgr_proto_error("Error:Hashing failed"));
 
@@ -386,10 +392,10 @@ void pre_session::write_session_id()
 			data_buf_1->append(reinterpret_cast<char*>(&session_id), sizeof(session_id_type));
 			data_buf_1->append(reinterpret_cast<char*>(&rand_num), sizeof(rand_num_type));
 
-			hash(*data_buf_1, *data_buf_1);
+            helper.hash(*data_buf_1, *data_buf_1);
 
-			sym_encrypt(*data_buf_1, data_buf_2, e);
-			encrypt(data_buf_2, *data_buf_1, e1);
+            helper.sym_encrypt(*data_buf_1, data_buf_2, e);
+            helper.encrypt(data_buf_2, *data_buf_1, e1);
 
 			insLen(*data_buf_1);
 		}
@@ -404,7 +410,7 @@ void pre_session::write_session_id()
 
 		asio::async_write(*socket,
 			asio::buffer(data_buf_1->data(), data_buf_1->size()),
-            [this, watcher_holder, data_buf_1](boost::system::error_code ec, std::size_t)
+            [this, watcher_holder, data_buf_1](const error_code_type& ec, std::size_t)
 		{
 			try
 			{
@@ -451,7 +457,7 @@ void pre_session_s::start()
 
 	asio::async_write(*socket,
 		asio::buffer(*buffer),
-        [this, buffer, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, buffer, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -493,8 +499,8 @@ void pre_session_s::stage2()
 	std::shared_ptr<pre_session_watcher> watcher_holder(watcher);
 	try
 	{
-		session_id = boost::endian::native_to_little(genRandomNumber());
-		rand_num_send = genRandomNumber();
+        session_id = boost::endian::native_to_little(helper.genRandomNumber());
+        rand_num_send = helper.genRandomNumber();
 		rand_num = boost::endian::native_to_little(rand_num_send);
 		if (rand_num_send == std::numeric_limits<rand_num_type>::max())
 			rand_num_send = 0;
@@ -571,7 +577,7 @@ void pre_session_c::start()
 
 	asio::async_write(*socket,
 		asio::buffer(*buffer),
-        [this, buffer, watcher_holder](boost::system::error_code ec, std::size_t)
+        [this, buffer, watcher_holder](const error_code_type& ec, std::size_t)
 	{
 		try
 		{
@@ -637,7 +643,7 @@ void pre_session_c::sid_packet_done()
 				write_session_id();
 				break;
 			case 1:
-				rand_num_send = genRandomNumber();
+                rand_num_send = helper.genRandomNumber();
 				rand_num = boost::endian::native_to_little(rand_num_send);
 				if (rand_num_send == std::numeric_limits<rand_num_type>::max())
 					rand_num_send = 0;
@@ -667,6 +673,8 @@ void pre_session_c::sid_packet_done()
 		srv.on_exception(ex);
 	}
 }
+
+#endif
 
 session_base::session_base(server& _srv, port_type_l _local_port, const std::string& _key_string)
 	:srv(_srv), local_port(_local_port), key_string(_key_string)
@@ -711,7 +719,7 @@ void session::start()
 void session::shutdown()
 {
 	exiting = true;
-	boost::system::error_code ec;
+	error_code_type ec;
 	socket->shutdown(socket->shutdown_both, ec);
 	socket->close(ec);
 
@@ -767,7 +775,7 @@ void session::read_header(const std::shared_ptr<read_end_watcher>& watcher)
 	asio::async_read(*socket,
 		asio::buffer(read_buffer.get(), sizeof(data_size_type)),
 		asio::transfer_exactly(sizeof(data_size_type)),
-		[this, self, watcher](boost::system::error_code ec, std::size_t size)
+		[this, self, watcher](const error_code_type& ec, std::size_t size)
 	{
 		try
 		{
@@ -794,7 +802,7 @@ void session::read_data(size_t size_last, const std::shared_ptr<std::string>& bu
 		asio::async_read(*socket,
 			asio::buffer(read_buffer.get(), read_buffer_size),
 			asio::transfer_exactly(read_buffer_size),
-			[this, self, size_last, buf, watcher](boost::system::error_code ec, std::size_t size)
+			[this, self, size_last, buf, watcher](const error_code_type& ec, std::size_t size)
 		{
 			try
 			{
@@ -815,7 +823,7 @@ void session::read_data(size_t size_last, const std::shared_ptr<std::string>& bu
 		asio::async_read(*socket,
 			asio::buffer(read_buffer.get(), size_last),
 			asio::transfer_exactly(size_last),
-			[this, self, buf, watcher](boost::system::error_code ec, std::size_t size)
+			[this, self, buf, watcher](const error_code_type& ec, std::size_t size)
 		{
 			try
 			{
@@ -897,7 +905,7 @@ void session::write(const std::shared_ptr<write_end_watcher>& watcher)
 
 		asio::async_write(*socket,
 			asio::buffer(write_itr->data),
-			[this, self, watcher, write_itr](boost::system::error_code ec, std::size_t /*length*/)
+			[this, self, watcher, write_itr](const error_code_type& ec, std::size_t /*length*/)
 		{
 			try
 			{

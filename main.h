@@ -15,12 +15,11 @@ struct user_ext_type
     {
         log_type(bool _is_recv, const char* _msg) :is_recv(_is_recv), is_image(false), msg(_msg) {}
         log_type(bool _is_recv, const std::string& _msg) :is_recv(_is_recv), is_image(false), msg(_msg.data()) {}
-        log_type(bool _is_recv, const QString& _msg) :is_recv(_is_recv), is_image(false), msg(_msg) {}
-        log_type(bool _is_recv, const fs::path& _image) :is_recv(_is_recv), is_image(true), image(_image) {}
+        log_type(bool _is_recv, const QString& _str, bool _is_image = false) :is_recv(_is_recv), is_image(_is_image) { if (is_image) image = _str; else msg = _str; }
 
         bool is_recv, is_image;
         QString msg;
-        fs::path image;
+        QString image;
     };
     std::list<log_type> log;
 
@@ -40,7 +39,7 @@ public:
     ~QtWindowInterface();
 
     void RecvMsg(user_id_type id, const std::string& msg);
-    void RecvImg(user_id_type id, const fs::path& path);
+    void RecvImg(user_id_type id, const QString& path);
     void Join(user_id_type id, const std::string& key);
     void Leave(user_id_type id);
 
@@ -68,6 +67,8 @@ private:
 
     int selected = -1;
     std::vector<user_id_type> user_id_map;
+
+    ECC_crypto_helper cryp_helper;
 };
 
 enum pac_type {
@@ -95,7 +96,8 @@ public:
         asio::io_service& _misc_io_service,
         asio::ip::tcp::endpoint _local_endpoint,
         crypto::server& _crypto_srv,
-        QtWindowInterface *_window);
+        QtWindowInterface* _window,
+        ECC_crypto_helper& cryp_helper);
     ~qt_srv_interface();
 
     virtual void on_data(user_id_type id, const std::string& data);

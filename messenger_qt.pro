@@ -32,15 +32,21 @@ win32 {
 }
 
 android {
-    QMAKE_CXXFLAGS += -std=c++14 -DNO_STD_TOSTRING
+    QMAKE_CXXFLAGS += -std=c++14 -DANDROID -DASIO_STANDALONE -fexceptions -frtti
 
-    equals(ANDROID_TARGET_ARCH, armeabi-v7a) {
-        LIBS += -LD:/androidlibs/arm -LD:/androidlibs/arm/boost
-    }
-    equals(ANDROID_TARGET_ARCH, x86)  {
-        LIBS += -LD:/androidlibs/x86 -LD:/androidlibs/x86/boost
-    }
-    LIBS += -lcryptopp -lboost_system
-    INCLUDEPATH += D:/androidlibs/include
+    LIBS += -LD:/androidlibs/$$ANDROID_TARGET_ARCH
+    LIBS += -lcryptopp
     INCLUDEPATH += C:/boost
+    INCLUDEPATH += D:/androidlibs/include
 }
+
+DISTFILES += \
+    android/AndroidManifest.xml \
+    android/gradle/wrapper/gradle-wrapper.jar \
+    android/gradlew \
+    android/res/values/libs.xml \
+    android/build.gradle \
+    android/gradle/wrapper/gradle-wrapper.properties \
+    android/gradlew.bat
+
+ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android

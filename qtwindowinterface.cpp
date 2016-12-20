@@ -1,31 +1,34 @@
 #include "stdafx.h"
+#include <QStandardPaths>
 #include "crypto.h"
 #include "main.h"
 
-fs::path TEMP_PATH, DATA_PATH;
+QString TEMP_PATH, DATA_PATH;
 const QString EmptyQString;
 
-QtWindowInterface::QtWindowInterface()
-{
-    TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation).toStdWString();
-    DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdWString();
+const char* privatekeyFile = ".privatekey";
 
-    if (!fs::exists(DATA_PATH))
-        fs::create_directories(DATA_PATH);
-    fs::current_path(DATA_PATH);
+QtWindowInterface::QtWindowInterface()
+    :cryp_helper(privatekeyFile)
+{
+    QDir fs;
+    TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+    DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+
+    if (!fs.exists(DATA_PATH))
+        fs.mkpath(DATA_PATH);
+    QDir::setCurrent(DATA_PATH);
 
     port_type portListen = 4826;
     port_type portsBegin = 5000, portsEnd = 9999;
     bool use_v6 = false;
     int crypto_worker = 1;
 
-    initKey();
-
     crypto_srv = std::make_unique<crypto::server>(threadCrypto.get_io_service(), crypto_worker);
     srv = std::make_unique<qt_srv_interface>(threadNetwork.get_io_service(), threadMisc.get_io_service(),
         asio::ip::tcp::endpoint((use_v6 ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), portListen),
         *crypto_srv.get(),
-        this);
+        this, cryp_helper);
 
     std::srand(static_cast<unsigned int>(std::time(NULL)));
     for (; portsBegin <= portsEnd; portsBegin++)
@@ -63,10 +66,10 @@ void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg)
         emit refreshChat(GenerateLogStr(usr));
 }
 
-void QtWindowInterface::RecvImg(user_id_type id, const fs::path& path)
+void QtWindowInterface::RecvImg(user_id_type id, const QString& path)
 {
     user_ext_type &usr = user_ext.at(id);
-    usr.log.emplace_back(true, path);
+    usr.log.emplace_back(true, path, true);
     if (selected != -1 && id == user_id_map.at(selected))
         emit refreshChat(GenerateLogStr(usr));
 }
@@ -192,7 +195,7 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
         if (itr->is_image)
         {
             ret.append("<img src=\"file:/");
-            ret.append(itr->image.string().c_str());
+            ret.append(itr->image);
             ret.append("\" />");
         }
         else

@@ -4,6 +4,10 @@
 
 using namespace msgr_proto;
 
+#ifdef _NO_CRYPTO
+const std::string empty_string;
+#endif
+
 void insLen(std::string& data)
 {
 	data_size_type len = boost::endian::native_to_little(static_cast<data_size_type>(data.size()));
@@ -16,16 +20,23 @@ void server::do_start()
 		return;
 	socket_ptr socket = std::make_shared<asio::ip::tcp::socket>(main_io_service);
 	acceptor.async_accept(*socket,
-		[this, socket](boost::system::error_code ec) {
+		[this, socket](const error_code_type& ec) {
 		if (closing)
 			return;
 		if (!ec)
 		{
-			std::shared_ptr<pre_session_s> pre_session_s_ptr(std::make_shared<pre_session_s>(port_null, socket, *this, crypto_srv, main_io_service, misc_io_service));
+#ifndef _NO_CRYPTO
+            std::shared_ptr<pre_session_s> pre_session_s_ptr(std::make_shared<pre_session_s>(port_null, socket, *this, crypto_srv, main_io_service, misc_io_service, cryp_helper));
 			std::unique_lock<std::mutex> lock(pre_session_mutex);
 			pre_sessions.emplace(pre_session_s_ptr);
 			lock.unlock();
 			pre_session_s_ptr->start();
+#else
+            session_ptr s(std::make_shared<session>(*this, port_null, empty_string, crypto_srv.new_session<proto_kit>(),
+                                                    main_io_service, misc_io_service, std::move(socket)));
+            s->join();
+            s->start();
+#endif
 		}
 
 		do_start();
@@ -37,13 +48,16 @@ void server::shutdown()
 	closing = true;
 	std::lock_guard<std::mutex> lock(session_mutex);
 	acceptor.close();
+#ifndef _NO_CRYPTO
 	for (std::unordered_set<std::shared_ptr<pre_session>>::iterator itr = pre_sessions.begin(), itr_end = pre_sessions.end(); itr != itr_end; itr = pre_sessions.erase(itr))
 		(*itr)->shutdown();
+#endif
 	for (session_list_type::iterator itr = sessions.begin(), itr_end = sessions.end(); itr != itr_end; itr = sessions.erase(itr))
 		itr->second->shutdown();
 	while (session_active_count != 0);
 }
 
+#ifndef _NO_CRYPTO
 void server::pre_session_over(const std::shared_ptr<pre_session>& _pre, bool successful)
 {
 	std::lock_guard<std::mutex> lock(pre_session_mutex);
@@ -56,6 +70,7 @@ void server::pre_session_over(const std::shared_ptr<pre_session>& _pre, bool suc
 	_pre->shutdown();
 	pre_sessions.erase(_pre);
 }
+#endif
 
 void server::join(const session_ptr& _user, user_id_type& uid)
 {
@@ -162,15 +177,22 @@ void server::connect(const asio::ip::tcp::endpoint& remote_endpoint)
 		socket->open(ip_protocol);
 		socket->bind(asio::ip::tcp::endpoint(ip_protocol, local_port));
 		socket->async_connect(remote_endpoint,
-			[this, local_port, socket](boost::system::error_code ec)
+			[this, local_port, socket](const error_code_type& ec)
 		{
 			if (!ec)
 			{
-				std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service));
+#ifndef _NO_CRYPTO
+                std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service, cryp_helper));
 				std::unique_lock<std::mutex> lock(pre_session_mutex);
 				pre_sessions.emplace(pre_session_c_ptr);
 				lock.unlock();
 				pre_session_c_ptr->start();
+#else
+                session_ptr s(std::make_shared<session>(*this, port_null, empty_string, crypto_srv.new_session<proto_kit>(),
+                                                        main_io_service, misc_io_service, std::move(socket)));
+                s->join();
+                s->start();
+#endif
 			}
 			else
 			{
@@ -189,7 +211,7 @@ void server::connect(const asio::ip::tcp::resolver::query& query)
 	else
 	{
 		resolver.async_resolve(query,
-			[this, local_port](const boost::system::error_code& ec, asio::ip::tcp::resolver::iterator itr)
+			[this, local_port](const error_code_type& ec, asio::ip::tcp::resolver::iterator itr)
 		{
 			if (ec)
 			{
@@ -200,7 +222,7 @@ void server::connect(const asio::ip::tcp::resolver::query& query)
 			socket_ptr socket = std::make_shared<asio::ip::tcp::socket>(main_io_service);
 
 			asio::async_connect(*socket, itr, asio::ip::tcp::resolver::iterator(),
-				[this, local_port, socket](const boost::system::error_code&, asio::ip::tcp::resolver::iterator next)->asio::ip::tcp::resolver::iterator
+				[this, local_port, socket](const error_code_type&, asio::ip::tcp::resolver::iterator next)->asio::ip::tcp::resolver::iterator
 			{
 				asio::ip::tcp::endpoint::protocol_type ip_protocol = next->endpoint().protocol();
 				socket->close();
@@ -208,15 +230,22 @@ void server::connect(const asio::ip::tcp::resolver::query& query)
 				socket->bind(asio::ip::tcp::endpoint(ip_protocol, local_port));
 				return next;
 			},
-				[this, local_port, socket](boost::system::error_code ec, asio::ip::tcp::resolver::iterator itr)
+				[this, local_port, socket](const error_code_type& ec, asio::ip::tcp::resolver::iterator itr)
 			{
 				if (!ec)
 				{
-					std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service));
+#ifndef _NO_CRYPTO
+                    std::shared_ptr<pre_session_c> pre_session_c_ptr(std::make_shared<pre_session_c>(local_port, socket, *this, crypto_srv, main_io_service, misc_io_service, cryp_helper));
 					std::unique_lock<std::mutex> lock(pre_session_mutex);
 					pre_sessions.emplace(pre_session_c_ptr);
 					lock.unlock();
 					pre_session_c_ptr->start();
+#else
+                    session_ptr s(std::make_shared<session>(*this, port_null, empty_string, crypto_srv.new_session<proto_kit>(),
+                                                            main_io_service, misc_io_service, std::move(socket)));
+                    s->join();
+                    s->start();
+#endif
 				}
 				else
 				{

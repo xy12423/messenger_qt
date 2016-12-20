@@ -2,12 +2,11 @@
 #include "main.h"
 
 //extern FileSendThread *threadFileSend;
-extern fs::path TEMP_PATH, DATA_PATH;
+extern QString TEMP_PATH, DATA_PATH;
 const char* IMG_TMP_PATH_NAME = ".messenger_tmp";
 const char* IMG_TMP_FILE_NAME = ".messenger_tmp_";
-fs::path IMG_TMP_PATH;
+QDir IMG_TMP_PATH;
 
-const char* privatekeyFile = ".privatekey";
 const char* publickeysFile = ".publickey";
 
 struct data_view
@@ -68,15 +67,15 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     asio::io_service& _misc_io_service,
     asio::ip::tcp::endpoint _local_endpoint,
     crypto::server& _crypto_srv,
-    QtWindowInterface *_window)
-    :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _crypto_srv), window(*_window)
+    QtWindowInterface *_window,
+    ECC_crypto_helper& cryp_helper)
+    :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _crypto_srv, cryp_helper), window(*_window)
 {
-    IMG_TMP_PATH = TEMP_PATH / IMG_TMP_PATH_NAME;
-    if (fs::exists(IMG_TMP_PATH))
-        fs::remove_all(IMG_TMP_PATH);
-    fs::create_directories(IMG_TMP_PATH);
+    QDir fs;
+    IMG_TMP_PATH = TEMP_PATH;
+    IMG_TMP_PATH.mkpath(IMG_TMP_PATH_NAME);
 
-    if (fs::exists(publickeysFile))
+    if (fs.exists(publickeysFile))
     {
         std::ifstream fin(publickeysFile, std::ios_base::in | std::ios_base::binary);
         std::vector<char> buf_key, buf_ex;
@@ -123,7 +122,7 @@ qt_srv_interface::~qt_srv_interface()
 
     fout.close();
 
-    fs::remove_all(IMG_TMP_PATH);
+    IMG_TMP_PATH.removeRecursively();
 }
 
 void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
@@ -151,32 +150,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data_size_type blockCountAll, fNameLen;
                 data.read(blockCountAll);
                 data.read(fNameLen);
-/*
-                std::wstring fName;
-                {
-                    size_t tmp;
-                    data.check(fNameLen);
-                    wxWCharBuffer wbuf = wxConvUTF8.cMB2WC(data.data, fNameLen, &tmp);
-                    data.skip(fNameLen);
-                    fName = std::wstring(wbuf, tmp);
-                }
 
-                if (fs::exists(fName))
-                {
-                    int i;
-                    for (i = 0; i < INT_MAX; i++)
-                    {
-                        if (!fs::exists(fs::path(fName + "_" + std::to_string(i))))
-                            break;
-                    }
-                    if (i == INT_MAX)
-                        throw(std::runtime_error("Failed to open file"));
-                    fName = fName + "_" + std::to_string(i);
-                }
-                usr.recvFile = (fs::current_path() / fName).string();
-                usr.blockLast = blockCountAll;
-                std::cout << "Receiving file " << fName << " from " << usr.addr << std::endl;
-*/
                 break;
             }
             case PAC_TYPE_FILE_B:
@@ -185,21 +159,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(dataSize);
 
                 data.check(dataSize);
-/*
-                if (usr.blockLast > 0)
-                {
-                    std::ofstream fout(usr.recvFile, std::ios::out | std::ios::binary | std::ios::app);
-                    fout.write(data.data, dataSize);
-                    data.skip(dataSize);
-                    fout.close();
-                    usr.blockLast--;
 
-                    std::cout << usr.recvFile << ":" << usr.blockLast << " block(s) last" << std::endl;
-
-                    if (usr.blockLast == 0)
-                        usr.recvFile.clear();
-                }
-*/
                 break;
             }
             case PAC_TYPE_IMAGE:
@@ -209,17 +169,17 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
 
                 int next_image_id;
                 new_image_id(next_image_id);
-                fs::path image_path = IMG_TMP_PATH;
-                image_path /= std::to_string(id);
-                image_path /= ".messenger_tmp_" + std::to_string(next_image_id);
+                QDir image_path = IMG_TMP_PATH;
+                image_path.cd(QString::number(id));
+                QString imagefile_path = image_path.filePath(".messenger_tmp_" + QString::number(next_image_id));
 
                 data.check(image_size);
-                std::ofstream fout(image_path.string(), std::ios_base::out | std::ios_base::binary);
+                std::ofstream fout(imagefile_path.toStdString(), std::ios_base::out | std::ios_base::binary);
                 fout.write(data.data, image_size);
                 fout.close();
                 data.skip(image_size);
 
-                window.RecvImg(id, image_path);
+                window.RecvImg(id, imagefile_path);
                 break;
             }
             default:
@@ -241,9 +201,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
 
 void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 {
-    fs::path tmp_path = IMG_TMP_PATH;
-    tmp_path /= std::to_string(id);
-    fs::create_directories(tmp_path);
+    IMG_TMP_PATH.mkpath(QString::number(id));
 
     window.Join(id, key);
 }
@@ -252,9 +210,9 @@ void qt_srv_interface::on_leave(user_id_type id)
 {
     window.Leave(id);
 
-    fs::path tmp_path = IMG_TMP_PATH;
-    tmp_path /= std::to_string(id);
-    fs::remove_all(tmp_path);
+    QDir tmp_path = IMG_TMP_PATH;
+    tmp_path.cd(QString::number(id));
+    tmp_path.removeRecursively();
 }
 
 bool qt_srv_interface::new_rand_port(port_type& ret)

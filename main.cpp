@@ -1,10 +1,12 @@
 #include "stdafx.h"
 #include <QQmlApplicationEngine>
+#include <QtQml>
 #include <QQmlContext>
 #include "main.h"
 
 int main(int argc, char *argv[])
 {
+    qDebug("main");
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication app(argc, argv);
 
