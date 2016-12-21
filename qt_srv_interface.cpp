@@ -2,7 +2,7 @@
 #include "main.h"
 
 //extern FileSendThread *threadFileSend;
-extern QString TEMP_PATH, DATA_PATH;
+extern QString TEMP_PATH, DATA_PATH, DOWNLOAD_PATH;
 const char* IMG_TMP_PATH_NAME = ".messenger_tmp";
 const char* IMG_TMP_FILE_NAME = ".messenger_tmp_";
 QDir IMG_TMP_PATH;
@@ -71,11 +71,10 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     ECC_crypto_helper& cryp_helper)
     :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _crypto_srv, cryp_helper), window(*_window)
 {
-    QDir fs;
     IMG_TMP_PATH = TEMP_PATH;
     IMG_TMP_PATH.mkpath(IMG_TMP_PATH_NAME);
 
-    fs.cd(DATA_PATH);
+    QDir fs(DATA_PATH);
     if (fs.exists(publickeysFile))
     {
         std::ifstream fin(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary);
@@ -107,8 +106,7 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
 
 qt_srv_interface::~qt_srv_interface()
 {
-    QDir fs;
-    fs.cd(DATA_PATH);
+    QDir fs(DATA_PATH);
 
     std::ofstream fout(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
 
@@ -155,6 +153,33 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(blockCountAll);
                 data.read(fNameLen);
 
+                data.check(fNameLen);
+                QString fName(data.data);
+                data.skip(fNameLen);
+
+                int pos = fName.lastIndexOf('/');
+                if (pos != -1)
+                    fName.remove(0, pos + 1);
+                pos = fName.lastIndexOf('\\');
+                if (pos != -1)
+                    fName.remove(0, pos + 1);
+
+                QDir fs(DOWNLOAD_PATH);
+                if (fs.exists(fName))
+                {
+                    int i;
+                    for (i = 0; i < INT_MAX; i++)
+                    {
+                        if (!fs.exists(fName + "_" + QString::number(i)))
+                            break;
+                    }
+                    if (i == INT_MAX)
+                        throw(std::runtime_error("Failed to open file"));
+                    fName.append("_");
+                    fName.append(QString::number(i));
+                }
+                window.RecvFileH(id, fs.filePath(fName), blockCountAll);
+
                 break;
             }
             case PAC_TYPE_FILE_B:
@@ -163,6 +188,8 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(dataSize);
 
                 data.check(dataSize);
+                window.RecvFileB(id, data.data, dataSize);
+                data.skip(dataSize);
 
                 break;
             }
@@ -173,7 +200,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
 
                 int next_image_id;
                 new_image_id(next_image_id);
-                QDir image_path = IMG_TMP_PATH;
+                QDir image_path(IMG_TMP_PATH);
                 image_path.cd(QString::number(id));
                 QString imagefile_path = image_path.filePath(".messenger_tmp_" + QString::number(next_image_id));
 
@@ -214,7 +241,7 @@ void qt_srv_interface::on_leave(user_id_type id)
 {
     window.Leave(id);
 
-    QDir tmp_path = IMG_TMP_PATH;
+    QDir tmp_path(IMG_TMP_PATH);
     tmp_path.cd(QString::number(id));
     tmp_path.removeRecursively();
 }

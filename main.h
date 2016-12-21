@@ -23,7 +23,7 @@ struct user_ext_type
     };
     std::list<log_type> log;
 
-    std::string recvFile;
+    QString recvFile;
     int blockLast;
 };
 
@@ -40,6 +40,8 @@ public:
 
     void RecvMsg(user_id_type id, const std::string& msg);
     void RecvImg(user_id_type id, const QString& path);
+    void RecvFileH(user_id_type id, const QString& file_name, size_t block_count);
+    void RecvFileB(user_id_type id, const char* data, size_t size);
     void Join(user_id_type id, const std::string& key);
     void Leave(user_id_type id);
 

@@ -3,7 +3,7 @@
 #include "crypto.h"
 #include "main.h"
 
-QString TEMP_PATH, DATA_PATH;
+QString TEMP_PATH, DATA_PATH, DOWNLOAD_PATH;
 const QString EmptyQString;
 
 const char* privatekeyFile = ".privatekey";
@@ -13,8 +13,10 @@ QtWindowInterface::QtWindowInterface()
     QDir fs;
     TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    DOWNLOAD_PATH = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
     qDebug(TEMP_PATH.toUtf8().data());
     qDebug(DATA_PATH.toUtf8().data());
+    qDebug(DOWNLOAD_PATH.toUtf8().data());
 
     if (!fs.exists(DATA_PATH))
         fs.mkpath(DATA_PATH);
@@ -76,6 +78,29 @@ void QtWindowInterface::RecvImg(user_id_type id, const QString& path)
     usr.log.emplace_back(true, path, true);
     if (selected != -1 && id == user_id_map.at(selected))
         emit refreshChat(GenerateLogStr(usr));
+}
+
+void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_name, size_t block_count)
+{
+    user_ext_type &usr = user_ext.at(id);
+    usr.recvFile = file_name;
+    usr.blockLast = block_count;
+}
+
+void QtWindowInterface::RecvFileB(user_id_type id, const char* data, size_t size)
+{
+    user_ext_type &usr = user_ext.at(id);
+
+    if (usr.blockLast > 0)
+    {
+        std::ofstream fout(usr.recvFile.toLocal8Bit().data(), std::ios::out | std::ios::binary | std::ios::app);
+        fout.write(data, size);
+        fout.close();
+        usr.blockLast--;
+
+        if (usr.blockLast == 0)
+            usr.recvFile.clear();
+    }
 }
 
 void QtWindowInterface::Join(user_id_type id, const std::string&)

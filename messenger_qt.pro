@@ -16,8 +16,7 @@ QML_IMPORT_PATH =
 # Default rules for deployment.
 include(deployment.pri)
 
-HEADERS += \
-    crypto.h \
+HEADERS += crypto.h \
     crypto_man.h \
     session.h \
     stdafx.h \
