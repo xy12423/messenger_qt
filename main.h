@@ -32,7 +32,7 @@ class qt_srv_interface;
 class QtWindowInterface : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int index READ get_selected WRITE select NOTIFY selectIndex)
+    Q_PROPERTY(int index READ get_selected WRITE select)
 
 public:
     QtWindowInterface();
@@ -44,7 +44,7 @@ public:
     void Leave(user_id_type id);
 
     int get_selected() { return selected; }
-    void select(int index) { selected = index; }
+    void select(int index) { selected = index; emit selectIndex(index); }
 signals:
     void joined(int index, const QString& name);
     void left(int index);
@@ -68,7 +68,7 @@ private:
     int selected = -1;
     std::vector<user_id_type> user_id_map;
 
-    ECC_crypto_helper cryp_helper;
+    std::unique_ptr<ECC_crypto_helper> cryp_helper;
 };
 
 enum pac_type {

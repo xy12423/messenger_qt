@@ -75,9 +75,10 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     IMG_TMP_PATH = TEMP_PATH;
     IMG_TMP_PATH.mkpath(IMG_TMP_PATH_NAME);
 
+    fs.cd(DATA_PATH);
     if (fs.exists(publickeysFile))
     {
-        std::ifstream fin(publickeysFile, std::ios_base::in | std::ios_base::binary);
+        std::ifstream fin(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary);
         std::vector<char> buf_key, buf_ex;
         char size_buf[sizeof(uint16_t)];
         fin.read(size_buf, sizeof(uint16_t));
@@ -106,7 +107,10 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
 
 qt_srv_interface::~qt_srv_interface()
 {
-    std::ofstream fout(publickeysFile, std::ios_base::out | std::ios_base::binary);
+    QDir fs;
+    fs.cd(DATA_PATH);
+
+    std::ofstream fout(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
 
     auto itr = certifiedKeys.begin(), itrEnd = certifiedKeys.end();
     for (; itr != itrEnd; itr++)
@@ -174,7 +178,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 QString imagefile_path = image_path.filePath(".messenger_tmp_" + QString::number(next_image_id));
 
                 data.check(image_size);
-                std::ofstream fout(imagefile_path.toStdString(), std::ios_base::out | std::ios_base::binary);
+                std::ofstream fout(imagefile_path.toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
                 fout.write(data.data, image_size);
                 fout.close();
                 data.skip(image_size);

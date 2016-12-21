@@ -9,15 +9,19 @@ const QString EmptyQString;
 const char* privatekeyFile = ".privatekey";
 
 QtWindowInterface::QtWindowInterface()
-    :cryp_helper(privatekeyFile)
 {
     QDir fs;
     TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    qDebug(TEMP_PATH.toUtf8().data());
+    qDebug(DATA_PATH.toUtf8().data());
 
     if (!fs.exists(DATA_PATH))
         fs.mkpath(DATA_PATH);
     QDir::setCurrent(DATA_PATH);
+
+    fs.cd(DATA_PATH);
+    cryp_helper = std::make_unique<ECC_crypto_helper>(fs.filePath(privatekeyFile).toLocal8Bit().data());
 
     port_type portListen = 4826;
     port_type portsBegin = 5000, portsEnd = 9999;
@@ -28,7 +32,7 @@ QtWindowInterface::QtWindowInterface()
     srv = std::make_unique<qt_srv_interface>(threadNetwork.get_io_service(), threadMisc.get_io_service(),
         asio::ip::tcp::endpoint((use_v6 ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), portListen),
         *crypto_srv.get(),
-        this, cryp_helper);
+        this, *cryp_helper.get());
 
     std::srand(static_cast<unsigned int>(std::time(NULL)));
     for (; portsBegin <= portsEnd; portsBegin++)
