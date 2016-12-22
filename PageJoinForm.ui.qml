@@ -6,9 +6,10 @@ Item {
     id: item_pagejoin
     width: 320
     height: 480
+    property alias button_cancel_conn: button_cancel_conn
+    property alias button_conn: button_conn
     property alias textInput_addr: textInput_addr
     property alias textInput_port: textInput_port
-    property alias button_add: button_add
 
     RowLayout {
         id: rowLayout_addr
@@ -84,18 +85,29 @@ Item {
                 id: textInput_port
                 anchors.fill: parent
 
+                text: "4826"
                 font.pixelSize: 12
             }
         }
     }
 
     Button {
-        id: button_add
+        id: button_conn
         width: 150
         height: 18
         anchors.top: rowLayout_port.bottom
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
         text: qsTr("Connect")
+    }
+
+    Button {
+        id: button_cancel_conn
+        width: 150
+        height: 18
+        anchors.top: button_conn.bottom
+        anchors.topMargin: 10
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: qsTr("Cancel")
     }
 }

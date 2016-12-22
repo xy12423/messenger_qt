@@ -1,6 +1,9 @@
 import QtQuick 2.7
 
 PageListForm {
+    id: form_pagelist
+    signal connectReq();
+
     Connections {
         target: cppInterface;
         onJoined: {
@@ -19,6 +22,13 @@ PageListForm {
         target: cppInterface;
         onLeft: {
             listModel_users.remove(index)
+        }
+    }
+
+    Connections {
+        target: button_add;
+        onClicked: {
+            form_pagelist.connectReq()
         }
     }
 

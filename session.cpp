@@ -432,7 +432,7 @@ void pre_session::write_session_id()
 pre_session::pre_session_watcher::~pre_session_watcher()
 {
 	if (!ptr->exiting)
-		srv.pre_session_over(ptr);
+        srv.pre_session_over(ptr, ptr->successful);
 }
 
 void pre_session_s::start()

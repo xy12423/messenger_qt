@@ -8,6 +8,7 @@ Item {
     height: 480
     property alias listView_users: listView_users
     property alias listModel_users: listModel_users
+    property alias button_add: button_add
     property alias button_del: button_del
 
     ColumnLayout {
@@ -18,7 +19,6 @@ Item {
             id: listView_users
             width: parent.width
             height: 360
-            spacing: 0
             orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -49,14 +49,30 @@ Item {
             focus: true
         }
 
-        Button {
-            id: button_del
+        RowLayout {
+            id: rowLayout_pagelist
             width: parent.width
             height: 100
-            text: qsTr("Disconnect")
             Layout.fillHeight: true
             Layout.fillWidth: true
-            spacing: 5
+
+            Button {
+                id: button_add
+                height: parent.height
+                text: qsTr("Connect")
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                spacing: 5
+            }
+
+            Button {
+                id: button_del
+                height: parent.height
+                text: qsTr("Disconnect")
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                spacing: 5
+            }
         }
     }
 }

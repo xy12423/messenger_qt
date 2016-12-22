@@ -73,6 +73,7 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
 {
     IMG_TMP_PATH = TEMP_PATH;
     IMG_TMP_PATH.mkpath(IMG_TMP_PATH_NAME);
+    IMG_TMP_PATH.cd(IMG_TMP_PATH_NAME);
 
     QDir fs(DATA_PATH);
     if (fs.exists(publickeysFile))
@@ -154,7 +155,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(fNameLen);
 
                 data.check(fNameLen);
-                QString fName(data.data);
+                QString fName = QString::fromUtf8(data.data, fNameLen);
                 data.skip(fNameLen);
 
                 int pos = fName.lastIndexOf('/');
