@@ -2,7 +2,7 @@ import QtQuick 2.7
 
 PageListForm {
     id: form_pagelist
-    signal connectReq();
+    signal connectReq()
 
     Connections {
         target: cppInterface;

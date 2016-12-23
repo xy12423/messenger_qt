@@ -3,6 +3,7 @@ import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.0
 
 ApplicationWindow {
+    id: main_window
     visible: true
     width: 320
     height: 480
@@ -51,6 +52,17 @@ ApplicationWindow {
             }
 
             PageChat {
+                id: page_chat
+                Connections {
+                    target: page_chat;
+                    onImageReq: {
+                        if (cppInterface.index != -1)
+                        {
+                            var component = Qt.createComponent("qrc:/DialogImg.qml");
+                            var dialog_img = component.createObject(main_window);
+                        }
+                    }
+                }
             }
         }
 

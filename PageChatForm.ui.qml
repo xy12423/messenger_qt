@@ -9,7 +9,8 @@ Item {
     property alias text_content: text_content
     property alias text_input: text_input
     property alias button_send: button_send
-    property alias flickable_chat: flickable_chat
+    property alias button_file: button_file
+    property alias button_image: button_image
 
     ColumnLayout {
         id: columnLayout_pagechat
@@ -67,17 +68,42 @@ Item {
             Layout.preferredHeight: 5
         }
 
-        Button {
-            id: button_send
+        RowLayout {
+            id: rowLayout_pagechat
             width: parent.width
             height: 50
             Layout.minimumHeight: 50
             Layout.preferredHeight: 50
-            Layout.fillHeight: true
-            Layout.fillWidth: true
-            spacing: 5
 
-            text: qsTr("Send")
+            Button {
+                id: button_send
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                spacing: 5
+
+                text: qsTr("Send")
+            }
+
+            Button {
+                id: button_image
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                spacing: 5
+
+                text: qsTr("Image")
+            }
+
+            Button {
+                id: button_file
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                spacing: 5
+
+                text: qsTr("File")
+            }
         }
     }
 }

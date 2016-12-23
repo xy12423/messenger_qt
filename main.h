@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include "session.h"
 #include "threads.h"
 
@@ -56,6 +57,7 @@ public slots:
     void connectTo(const QString& addr, const QString& port);
     void disconnect();
     void sendMsg(const QString& msg);
+    void sendImg(const QUrl& img_path);
 private slots:
     void OnSelectChanged(int);
 private:
@@ -116,7 +118,7 @@ public:
     void set_static_port(port_type port) { static_port = port; }
     void new_image_id(int& id) { id = image_id; image_id++; }
 
-    //virtual void on_error() {}
+    virtual void on_error(const char* err) { qDebug(err); }
 private:
     std::unordered_map<std::string, std::string> certifiedKeys;
     std::list<port_type> ports;

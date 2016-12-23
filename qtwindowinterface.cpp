@@ -8,6 +8,31 @@ const QString EmptyQString;
 
 const char* privatekeyFile = ".privatekey";
 
+bool compare_header(const char* data, const char* header)
+{
+    for (; *header != '\0'; ++header, ++data)
+        if (*data != *header)
+            return false;
+    return true;
+}
+
+bool is_image(const char* data, size_t size)
+{
+    const char BMP_HEADER[] = "\x42\x4D",
+            PNG_HEADER[] = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
+            JPG_HEADER[] = "\xFF\xD8\xFF\xE0",
+            GIF_HEADER[] = "\x47\x49\x46";
+    if (size >= sizeof(BMP_HEADER) && compare_header(data, BMP_HEADER))
+        return true;
+    if (size >= sizeof(PNG_HEADER) && compare_header(data, PNG_HEADER))
+        return true;
+    if (size >= sizeof(JPG_HEADER) && compare_header(data, JPG_HEADER))
+        return true;
+    if (size >= sizeof(GIF_HEADER) && compare_header(data, GIF_HEADER))
+        return true;
+    return false;
+}
+
 QtWindowInterface::QtWindowInterface()
 {
     QDir fs;
@@ -84,7 +109,7 @@ void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_name, siz
 {
     user_ext_type &usr = user_ext.at(id);
     usr.recvFile = file_name;
-    usr.blockLast = block_count;
+    usr.blockLast = static_cast<int>(block_count);
 }
 
 void QtWindowInterface::RecvFileB(user_id_type id, const char* data, size_t size)
@@ -168,23 +193,83 @@ void QtWindowInterface::sendMsg(const QString& msg)
 {
     try
     {
-        if (!msg.isEmpty())
+        if (!msg.isEmpty() && selected != -1)
         {
-            if (selected != -1)
+            QByteArray msg_buf = msg.toUtf8();
+            char tmp[5];
+            tmp[0] = PAC_TYPE_MSG;
+            tmp[1] = static_cast<uint8_t>(msg_buf.size() & 0xFF);
+            tmp[2] = static_cast<uint8_t>(msg_buf.size() >> 8);
+            tmp[3] = static_cast<uint8_t>(msg_buf.size() >> 16);
+            tmp[4] = static_cast<uint8_t>(msg_buf.size() >> 24);
+            std::string msg_utf8(tmp, sizeof(tmp));
+            msg_utf8.append(msg_buf.data());
+
+            user_id_type uID = user_id_map.at(selected);
+            srv->send_data(uID, msg_utf8, msgr_proto::session::priority_msg);
+            user_ext.at(uID).log.emplace_back(false, msg);
+            emit refreshChat(GenerateLogStr(user_ext.at(uID)));
+        }
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::sendImg(const QUrl& url)
+{
+    try
+    {
+        QDir fs;
+        QString path = url.toLocalFile();
+        if (!path.isEmpty() && fs.exists(path))
+        {
+            user_id_type uID = user_id_map.at(selected);
+            int next_image_id;
+            srv->new_image_id(next_image_id);
+
+            QDir tmp_path = TEMP_PATH;
+            tmp_path.cd(IMG_TMP_PATH_NAME);
+            tmp_path.cd(QString::number(uID));
+            QString new_path = tmp_path.filePath(".messenger_tmp_" + QString::number(next_image_id));
+
+            std::ifstream fin(path.toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary);
+            std::ofstream fout(new_path.toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
+            size_t file_size = 0;
+            if (!fin || !fin.is_open() || !fout || !fout.is_open())
+                return;
+
+            constexpr size_t buf_size = 0x100000;
+            std::unique_ptr<char[]> buf = std::make_unique<char[]>(buf_size);
+            std::string data(5, '\0');
+
+            fin.read(buf.get(), buf_size);
+            if (!is_image(buf.get(), fin.gcount()))
+                return;
+            file_size += fin.gcount();
+            fout.write(buf.get(), fin.gcount());
+            data.append(buf.get(), fin.gcount());
+            while (!fin.eof())
             {
-                std::string msg_utf8(msg.toUtf8().data());
-                user_id_type uID = user_id_map.at(selected);
-                char tmp[5];
-                tmp[0] = PAC_TYPE_MSG;
-                tmp[1] = static_cast<uint8_t>(msg_utf8.size() & 0xFF);
-                tmp[2] = static_cast<uint8_t>(msg_utf8.size() >> 8);
-                tmp[3] = static_cast<uint8_t>(msg_utf8.size() >> 16);
-                tmp[4] = static_cast<uint8_t>(msg_utf8.size() >> 24);
-                msg_utf8.insert(0, tmp, 5);
-                srv->send_data(uID, msg_utf8, msgr_proto::session::priority_msg);
-                user_ext.at(uID).log.emplace_back(false, msg);
-                emit refreshChat(GenerateLogStr(user_ext.at(uID)));
+                fin.read(buf.get(), buf_size);
+                file_size += fin.gcount();
+                fout.write(buf.get(), fin.gcount());
+                data.append(buf.get(), fin.gcount());
             }
+
+            fout.close();
+            fin.close();
+
+            data[0] = PAC_TYPE_IMAGE;
+            data[1] = static_cast<uint8_t>(file_size & 0xFF);
+            data[2] = static_cast<uint8_t>(file_size >> 8);
+            data[3] = static_cast<uint8_t>(file_size >> 16);
+            data[4] = static_cast<uint8_t>(file_size >> 24);
+
+            srv->send_data(uID, data, msgr_proto::session::priority_msg);
+            user_ext.at(uID).log.emplace_back(false, new_path, true);
+            emit refreshChat(GenerateLogStr(user_ext.at(uID)));
         }
     }
     catch (std::exception& ex)
