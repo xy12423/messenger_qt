@@ -1,5 +1,4 @@
 #include "stdafx.h"
-#include <QStandardPaths>
 #include "crypto.h"
 #include "main.h"
 
@@ -39,9 +38,6 @@ QtWindowInterface::QtWindowInterface()
     TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
     DATA_PATH = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     DOWNLOAD_PATH = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
-    qDebug(TEMP_PATH.toUtf8().data());
-    qDebug(DATA_PATH.toUtf8().data());
-    qDebug(DOWNLOAD_PATH.toUtf8().data());
 
     if (!fs.exists(DATA_PATH))
         fs.mkpath(DATA_PATH);

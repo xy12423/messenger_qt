@@ -33,6 +33,24 @@ ApplicationWindow {
         }
     }
 
+    Component {
+        id: component_page_img
+
+        Item {
+            PageImg {
+                id: page_img
+                anchors.fill: parent
+
+                Connections {
+                    target: page_img;
+                    onImageReqFinish: {
+                        stack_view.pop()
+                    }
+                }
+            }
+        }
+    }
+
     Page {
         id: main_page
 
@@ -58,8 +76,7 @@ ApplicationWindow {
                     onImageReq: {
                         if (cppInterface.index != -1)
                         {
-                            var component = Qt.createComponent("qrc:/DialogImg.qml");
-                            var dialog_img = component.createObject(main_window);
+                            stack_view.push(component_page_img)
                         }
                     }
                 }

@@ -7,7 +7,7 @@
         <file>PageChatForm.ui.qml</file>
         <file>PageJoin.qml</file>
         <file>PageJoinForm.ui.qml</file>
-        <file>DialogFile.qml</file>
-        <file>DialogImg.qml</file>
+        <file>PageImg.qml</file>
+        <file>PageImgForm.ui.qml</file>
     </qresource>
 </RCC>
