@@ -51,6 +51,7 @@ public:
     void select(int index) { selected = index; emit selectIndex(index); }
 
     Q_INVOKABLE QUrl getPicturePath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); }
+    Q_INVOKABLE QString urlToLocalStr(const QUrl& url) { return url.toLocalFile(); }
 signals:
     void joined(int index, const QString& name);
     void left(int index);

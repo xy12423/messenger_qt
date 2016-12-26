@@ -5,33 +5,35 @@ PageImgForm {
 
     signal imageReqFinish()
 
-    Connections {
-        target: form_pageimg;
-        onSelectedIndexChanged: {
-            var selectedURL = form_pageimg.listModel_img.get(selectedIndex, "fileURL")
-            if (form_pageimg.listModel_img.get(selectedIndex, "fileIsDir"))
-                form_pageimg.listModel_img.folder = selectedURL
+    button_back.onClicked: {
+        listModel_img.folder = listModel_img.parentFolder
+        text_path.text = cppInterface.urlToLocalStr(listModel_img.folder)
+    }
+
+    onSelectedIndexChanged: {
+        var selectedURL = listModel_img.get(selectedIndex, "fileURL")
+        if (listModel_img.get(selectedIndex, "fileIsDir"))
+        {
+            listModel_img.folder = selectedURL
+            text_path.text = cppInterface.urlToLocalStr(selectedURL)
+            listView_img.currentIndex = -1
+            selectedIndex = -1
         }
     }
 
-    Connections {
-        target: button_ok_img;
-        onClicked: {
-            var selectedURL = form_pageimg.listModel_img.get(selectedIndex, "fileURL")
-            if (!form_pageimg.listModel_img.get(selectedIndex, "fileIsDir"))
-                cppInterface.sendImg(selectedURL)
-            form_pageimg.imageReqFinish()
-        }
+    button_ok_img.onClicked: {
+        var selectedURL = listModel_img.get(selectedIndex, "fileURL")
+        if (!listModel_img.get(selectedIndex, "fileIsDir"))
+            cppInterface.sendImg(selectedURL)
+        imageReqFinish()
     }
 
-    Connections {
-        target: button_cancel_img;
-        onClicked: {
-            form_pageimg.imageReqFinish()
-        }
+    button_cancel_img.onClicked: {
+        imageReqFinish()
     }
 
     Component.onCompleted: {
-        form_pageimg.listModel_img.folder = cppInterface.getPicturePath()
+        listModel_img.folder = cppInterface.getPicturePath()
+        text_path.text = cppInterface.urlToLocalStr(listModel_img.folder)
     }
 }

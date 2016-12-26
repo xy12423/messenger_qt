@@ -12,12 +12,54 @@ Item {
     property alias button_cancel_img: button_cancel_img
     property alias listView_img: listView_img
     property alias listModel_img: listModel_img
+    property alias text_path: text_path
     property int selectedIndex
     onSelectedIndexChanged: listView_img.currentIndex = selectedIndex
 
     ColumnLayout {
         id: columnLayout_pageimg
         anchors.fill: parent
+
+        RowLayout {
+            id: rowLayout_header
+            width: parent.width
+            height: 25
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            Layout.preferredHeight: 25
+
+            Button {
+                id: button_back
+                width: parent.height
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.maximumWidth: parent.height
+                spacing: 5
+
+                text: qsTr("<")
+            }
+
+            Rectangle {
+                id: rectangle_path
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                color: "#cccccc"
+
+                Text {
+                    id: text_path
+                    anchors.left: parent.left
+                    anchors.leftMargin: 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.verticalCenterOffset: 0
+
+                    font.pixelSize: 12
+                }
+            }
+
+
+        }
 
         ListView {
             id: listView_img
@@ -26,6 +68,7 @@ Item {
             orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
+            Layout.preferredHeight: 360
 
             model: FolderListModel {
                 id: listModel_img
@@ -56,22 +99,12 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_pageimg
+            id: rowLayout_footer
             width: parent.width
-            height: 100
+            height: 40
             Layout.fillHeight: true
             Layout.fillWidth: true
-
-            Button {
-                id: button_back
-                height: parent.height
-                text: qsTr("Back")
-                Layout.fillHeight: true
-                Layout.fillWidth: true
-                spacing: 5
-
-                onClicked: listModel_img.folder = listModel_img.parentFolder
-            }
+            Layout.preferredHeight: 40
 
             Button {
                 id: button_ok_img

@@ -59,14 +59,13 @@ namespace msgr_proto
         inline rand_num_type get_rand_num_send() { if (rand_num_send == std::numeric_limits<rand_num_type>::max()) rand_num_send = 0; else rand_num_send++; return rand_num_send; }
         inline rand_num_type get_rand_num_recv() { if (rand_num_recv == std::numeric_limits<rand_num_type>::max()) rand_num_recv = 0; else rand_num_recv++; return rand_num_recv; }
 
+        ECC_crypto_helper& helper;
 		CryptoPP::CBC_Mode<CryptoPP::AES>::Encryption e;
 		CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption d;
 		CryptoPP::ECIES<CryptoPP::ECP>::Encryptor e1;
 		CryptoPP::ECIES<CryptoPP::ECP>::Decryptor d0;
 		session_id_type session_id;
-		rand_num_type rand_num_send, rand_num_recv;
-
-        ECC_crypto_helper& helper;
+        rand_num_type rand_num_send, rand_num_recv;
 #endif
 		std::string empty_string;
 	};

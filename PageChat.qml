@@ -13,25 +13,16 @@ PageChatForm {
         }
     }
 
-    Connections {
-        target: button_send;
-        onClicked: {
-            cppInterface.sendMsg(text_input.text)
-            text_input.text = ""
-        }
+    button_send.onClicked: {
+        cppInterface.sendMsg(text_input.text)
+        text_input.text = ""
     }
 
-    Connections {
-        target: button_image;
-        onClicked: {
-            form_pagechat.imageReq()
-        }
+    button_image.onClicked: {
+        form_pagechat.imageReq()
     }
 
-    Connections {
-        target: button_file;
-        onClicked: {
-            form_pagechat.fileReq()
-        }
+    button_file.onClicked: {
+        form_pagechat.fileReq()
     }
 }

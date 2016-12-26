@@ -25,17 +25,11 @@ PageListForm {
         }
     }
 
-    Connections {
-        target: button_add;
-        onClicked: {
-            form_pagelist.connectReq()
-        }
+    button_add.onClicked: {
+        form_pagelist.connectReq()
     }
 
-    Connections {
-        target: button_del;
-        onClicked: {
-            cppInterface.disconnect()
-        }
+    button_del.onClicked: {
+        cppInterface.disconnect()
     }
 }
