@@ -3,7 +3,7 @@ import QtQuick 2.7
 PageFileForm {
     id: form_pagefile
 
-    signal imageReqFinish()
+    signal fileReqFinish()
 
     button_back.onClicked: {
         listModel_file.folder = listModel_file.parentFolder
@@ -24,17 +24,17 @@ PageFileForm {
     button_ok_file.onClicked: {
         var selectedURL = listModel_file.get(selectedIndex, "fileURL")
         if (!listModel_file.get(selectedIndex, "fileIsDir"))
-            cppInterface.sendImg(selectedURL)
-        imageReqFinish()
+            cppInterface.sendFile(selectedURL)
+        fileReqFinish()
     }
 
     button_cancel_file.onClicked: {
-        imageReqFinish()
+        fileReqFinish()
     }
 
     Component.onCompleted: {
-        listModel_file.nameFilters = ["*.jpg", "*.png", "*.gif", "*.bmp"]
-        listModel_file.folder = cppInterface.getPicturesPath()
+        listModel_file.nameFilters = ["*.*"]
+        listModel_file.folder = cppInterface.getDownloadPath()
         text_path.text = cppInterface.urlToLocalStr(listModel_file.folder)
     }
 }

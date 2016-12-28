@@ -51,6 +51,24 @@ ApplicationWindow {
         }
     }
 
+    Component {
+        id: component_page_file
+
+        Item {
+            PageFile {
+                id: page_file
+                anchors.fill: parent
+
+                Connections {
+                    target: page_file;
+                    onFileReqFinish: {
+                        stack_view.pop()
+                    }
+                }
+            }
+        }
+    }
+
     Page {
         id: main_page
 
@@ -71,12 +89,23 @@ ApplicationWindow {
 
             PageChat {
                 id: page_chat
+
                 Connections {
                     target: page_chat;
                     onImageReq: {
                         if (cppInterface.index != -1)
                         {
                             stack_view.push(component_page_img)
+                        }
+                    }
+                }
+
+                Connections {
+                    target: page_chat;
+                    onFileReq: {
+                        if (cppInterface.index != -1)
+                        {
+                            stack_view.push(component_page_file)
                         }
                     }
                 }

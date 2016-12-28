@@ -4,20 +4,20 @@ import QtQuick.Layouts 1.0
 import Qt.labs.folderlistmodel 2.1
 
 Item {
-    id: item_pageimg
+    id: item_pagefile
     width: 320
     height: 480
     property alias button_back: button_back
-    property alias button_ok_img: button_ok_img
-    property alias button_cancel_img: button_cancel_img
-    property alias listView_img: listView_img
-    property alias listModel_img: listModel_img
+    property alias button_ok_file: button_ok_file
+    property alias button_cancel_file: button_cancel_file
+    property alias listView_file: listView_file
+    property alias listModel_file: listModel_file
     property alias text_path: text_path
     property int selectedIndex
-    onSelectedIndexChanged: listView_img.currentIndex = selectedIndex
+    onSelectedIndexChanged: listView_file.currentIndex = selectedIndex
 
     ColumnLayout {
-        id: columnLayout_pageimg
+        id: columnLayout_pagefile
         anchors.fill: parent
 
         RowLayout {
@@ -62,7 +62,7 @@ Item {
         }
 
         ListView {
-            id: listView_img
+            id: listView_file
             width: parent.width
             height: 360
             orientation: ListView.Vertical
@@ -71,8 +71,7 @@ Item {
             Layout.preferredHeight: 360
 
             model: FolderListModel {
-                id: listModel_img
-                nameFilters: ["*.jpg", "*.png", "*.gif", "*.bmp"]
+                id: listModel_file
                 showDirsFirst: true
             }
 
@@ -107,7 +106,7 @@ Item {
             Layout.preferredHeight: 40
 
             Button {
-                id: button_ok_img
+                id: button_ok_file
                 height: parent.height
                 text: qsTr("OK")
                 Layout.fillHeight: true
@@ -116,7 +115,7 @@ Item {
             }
 
             Button {
-                id: button_cancel_img
+                id: button_cancel_file
                 height: parent.height
                 text: qsTr("Cancel")
                 Layout.fillHeight: true

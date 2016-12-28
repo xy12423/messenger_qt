@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <QFileInfo>
 #include "crypto.h"
 #include "main.h"
 
@@ -33,6 +34,7 @@ bool is_image(const char* data, size_t size)
 }
 
 QtWindowInterface::QtWindowInterface()
+    :file_block(std::make_unique<char[]>(FileBlockLen))
 {
     QDir fs;
     TEMP_PATH = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
@@ -68,6 +70,7 @@ QtWindowInterface::QtWindowInterface()
     threadNetwork.start();
 
     connect(this, SIGNAL(selectIndex(int)), this, SLOT(OnSelectChanged(int)));
+    connect(this, SIGNAL(sendFileBlock(int)), this, SLOT(OnSendFileBlock(int)));
 }
 
 QtWindowInterface::~QtWindowInterface()
@@ -263,9 +266,60 @@ void QtWindowInterface::sendImg(const QUrl& url)
             data[3] = static_cast<uint8_t>(file_size >> 16);
             data[4] = static_cast<uint8_t>(file_size >> 24);
 
-            srv->send_data(uID, data, msgr_proto::session::priority_msg);
+            srv->send_data(uID, std::move(data), msgr_proto::session::priority_msg);
             user_ext.at(uID).log.emplace_back(false, new_path, true);
             emit refreshChat(GenerateLogStr(user_ext.at(uID)));
+        }
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::sendFile(const QUrl& url)
+{
+    try
+    {
+        QString path = url.toLocalFile();
+        QFileInfo file_info(path);
+        if (!path.isEmpty() && file_info.exists())
+        {
+            std::string file_name = path.toUtf8().toStdString();
+            size_t pos = file_name.rfind('/');
+            if (pos != std::string::npos)
+                file_name.erase(0, pos + 1);
+            pos = file_name.rfind('\\');
+            if (pos != std::string::npos)
+                file_name.erase(0, pos + 1);
+
+            qint64 file_size = file_info.size();
+            data_size_type blockCountAll;
+            if (file_size % FileBlockLen == 0)
+                blockCountAll = file_size / FileBlockLen;
+            else
+                blockCountAll = file_size / FileBlockLen + 1;
+            if (blockCountAll < 1)
+                return;
+            size_t file_name_size = file_name.size();
+            std::string data(9, '\0');
+
+            data[0] = PAC_TYPE_FILE_H;
+            data[1] = static_cast<uint8_t>(blockCountAll & 0xFF);
+            data[2] = static_cast<uint8_t>(blockCountAll >> 8);
+            data[3] = static_cast<uint8_t>(blockCountAll >> 16);
+            data[4] = static_cast<uint8_t>(blockCountAll >> 24);
+            data[5] = static_cast<uint8_t>(file_name_size & 0xFF);
+            data[6] = static_cast<uint8_t>(file_name_size >> 8);
+            data[7] = static_cast<uint8_t>(file_name_size >> 16);
+            data[8] = static_cast<uint8_t>(file_name_size >> 24);
+            data.append(file_name);
+
+            user_id_type uID = user_id_map.at(selected);
+            bool sending = !user_ext.at(uID).sendTasks.empty();
+            user_ext.at(uID).sendTasks.emplace_back(std::move(data), path, blockCountAll);
+            if (!sending)
+                emit sendFileBlock(uID);
         }
     }
     catch (std::exception& ex)
@@ -282,6 +336,44 @@ void QtWindowInterface::OnSelectChanged(int index)
             emit refreshChat(GenerateLogStr(user_ext.at(user_id_map.at(index))));
         else
             emit refreshChat(EmptyQString);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::OnSendFileBlock(int uID)
+{
+    try
+    {
+        if (user_ext.count(uID) < 1)
+            return;
+        std::list<user_ext_type::send_task> &tasks = user_ext.at(uID).sendTasks;
+        if (tasks.empty())
+            return;
+        user_ext_type::send_task &task = tasks.front();
+        if (task.blockCount == 1)
+            srv->send_data(uID, std::move(task.header), msgr_proto::session::priority_file);
+
+        std::string sendBuf;
+        task.fin.read(file_block.get(), FileBlockLen);
+        std::streamsize sizeRead = task.fin.gcount();
+        sendBuf.reserve(5 + sizeRead);
+        sendBuf.push_back(PAC_TYPE_FILE_B);
+        sendBuf.push_back(static_cast<uint8_t>(sizeRead & 0xFF));
+        sendBuf.push_back(static_cast<uint8_t>(sizeRead >> 8));
+        sendBuf.push_back(static_cast<uint8_t>(sizeRead >> 16));
+        sendBuf.push_back(static_cast<uint8_t>(sizeRead >> 24));
+        sendBuf.append(file_block.get(), sizeRead);
+
+        srv->send_data(uID, std::move(sendBuf), msgr_proto::session::priority_file, [this, uID]() {
+            emit sendFileBlock(uID);
+        });
+
+        task.blockCount += 1;
+        if (task.fin.eof() || task.blockCount > task.blockCountAll)
+            tasks.pop_front();
     }
     catch (std::exception& ex)
     {

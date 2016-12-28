@@ -8,6 +8,7 @@
         <file>PageJoin.qml</file>
         <file>PageJoinForm.ui.qml</file>
         <file>PageImg.qml</file>
-        <file>PageImgForm.ui.qml</file>
+        <file>PageFileForm.ui.qml</file>
+        <file>PageFile.qml</file>
     </qresource>
 </RCC>

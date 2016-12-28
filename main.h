@@ -25,6 +25,19 @@ struct user_ext_type
     };
     std::list<log_type> log;
 
+    struct send_task
+    {
+        send_task(std::string&& _header, const QString& path, data_size_type _blockCountAll)
+            :header(_header),
+            fin(path.toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary),
+            blockCountAll(_blockCountAll)
+        {}
+
+        std::string header;
+        std::ifstream fin;
+        data_size_type blockCount = 1, blockCountAll;
+    };
+    std::list<send_task> sendTasks;
     QString recvFile;
     int blockLast;
 };
@@ -35,6 +48,9 @@ class QtWindowInterface : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int index READ get_selected WRITE select)
+
+private:
+    static constexpr int FileBlockLen = 0x80000;
 
 public:
     QtWindowInterface();
@@ -50,20 +66,25 @@ public:
     int get_selected() { return selected; }
     void select(int index) { selected = index; emit selectIndex(index); }
 
-    Q_INVOKABLE QUrl getPicturePath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); }
+    Q_INVOKABLE QUrl getPicturesPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); }
+    Q_INVOKABLE QUrl getDownloadPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)); }
     Q_INVOKABLE QString urlToLocalStr(const QUrl& url) { return url.toLocalFile(); }
 signals:
     void joined(int index, const QString& name);
     void left(int index);
     void refreshChat(const QString& content);
     void selectIndex(int index);
+
+    void sendFileBlock(int id);
 public slots:
     void connectTo(const QString& addr, const QString& port);
     void disconnect();
     void sendMsg(const QString& msg);
     void sendImg(const QUrl& img_path);
+    void sendFile(const QUrl& file_path);
 private slots:
     void OnSelectChanged(int);
+    void OnSendFileBlock(int);
 private:
     QString GenerateLogStr(user_ext_type& usr);
 
@@ -77,6 +98,8 @@ private:
     std::vector<user_id_type> user_id_map;
 
     std::unique_ptr<ECC_crypto_helper> cryp_helper;
+
+    std::unique_ptr<char[]> file_block;
 };
 
 enum pac_type {

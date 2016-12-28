@@ -21,8 +21,7 @@ HEADERS += crypto.h \
     session.h \
     stdafx.h \
     main.h \
-    threads.h \
-    filedialoginter.h
+    threads.h
 
 win32 {
     QMAKE_CXXFLAGS += -D_WIN32_WINNT=0x0501
