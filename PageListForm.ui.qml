@@ -52,8 +52,7 @@ Item {
         RowLayout {
             id: rowLayout_pagelist
             width: parent.width
-            height: 100
-            Layout.fillHeight: true
+            height: 40
             Layout.fillWidth: true
 
             Button {

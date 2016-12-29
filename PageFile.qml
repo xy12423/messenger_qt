@@ -7,6 +7,7 @@ PageFileForm {
 
     button_back.onClicked: {
         listModel_file.folder = listModel_file.parentFolder
+        selectedIndex = -1
         text_path.text = cppInterface.urlToLocalStr(listModel_file.folder)
     }
 
@@ -15,9 +16,8 @@ PageFileForm {
         if (listModel_file.get(selectedIndex, "fileIsDir"))
         {
             listModel_file.folder = selectedURL
-            text_path.text = cppInterface.urlToLocalStr(selectedURL)
-            listView_file.currentIndex = -1
             selectedIndex = -1
+            text_path.text = cppInterface.urlToLocalStr(selectedURL)
         }
     }
 
@@ -35,6 +35,7 @@ PageFileForm {
     Component.onCompleted: {
         listModel_file.nameFilters = ["*.*"]
         listModel_file.folder = cppInterface.getDownloadPath()
+        selectedIndex = -1
         text_path.text = cppInterface.urlToLocalStr(listModel_file.folder)
     }
 }

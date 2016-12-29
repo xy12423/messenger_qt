@@ -14,7 +14,6 @@ Item {
     property alias listModel_file: listModel_file
     property alias text_path: text_path
     property int selectedIndex
-    onSelectedIndexChanged: listView_file.currentIndex = selectedIndex
 
     ColumnLayout {
         id: columnLayout_pagefile
@@ -69,6 +68,7 @@ Item {
             Layout.fillHeight: true
             Layout.fillWidth: true
             Layout.preferredHeight: 360
+            currentIndex: selectedIndex
 
             model: FolderListModel {
                 id: listModel_file

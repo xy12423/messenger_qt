@@ -21,7 +21,6 @@ Item {
         {
             width: parent.width
             height: 360
-            Layout.minimumHeight: 320
             Layout.fillHeight: true
             Layout.fillWidth: true
 
@@ -48,9 +47,6 @@ Item {
             id: rectangle_input
             width: parent.width
             height: 20
-            Layout.minimumHeight: 20
-            Layout.preferredHeight: 20
-            Layout.fillHeight: true
             Layout.fillWidth: true
 
             color: "#e6e6e6"
@@ -64,16 +60,15 @@ Item {
         }
 
         Item {
-            Layout.minimumHeight: 5
-            Layout.preferredHeight: 5
+            height: 5
+            Layout.fillWidth: true
         }
 
         RowLayout {
             id: rowLayout_pagechat
             width: parent.width
-            height: 50
-            Layout.minimumHeight: 50
-            Layout.preferredHeight: 50
+            height: 40
+            Layout.fillWidth: true
 
             Button {
                 id: button_send
