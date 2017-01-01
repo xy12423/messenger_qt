@@ -139,9 +139,9 @@ bool ECC_crypto_helper::dhAgree(SecByteBlock& agree, const SecByteBlock& priv, c
 
 rand_num_type ECC_crypto_helper::genRandomNumber()
 {
-	byte t[sizeof(rand_num_type)];
-	prng.GenerateBlock(t, sizeof(rand_num_type));
-	return *reinterpret_cast<rand_num_type*>(t);
+    rand_num_type t;
+    prng.GenerateBlock(reinterpret_cast<byte*>(&t), sizeof(rand_num_type));
+    return t;
 }
 
 #endif

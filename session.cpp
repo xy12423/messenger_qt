@@ -5,6 +5,24 @@
 
 using namespace msgr_proto;
 
+bool compare_data(const char* data1, const char* data2, size_t size)
+{
+    for (const char *data1_end = data1 + size; data1 < data1_end; data1++, data2++)
+        if (*data1 != *data2)
+            return false;
+    return true;
+}
+
+template <typename _Ty>
+bool compare_little_endian(const char* data, _Ty num)
+{
+    const char *data_end = data + sizeof(_Ty);
+    for (int i = 0; data < data_end; data++, i += 8)
+        if (static_cast<uint8_t>(*data) != static_cast<uint8_t>(num >> i))
+            return false;
+    return true;
+}
+
 void proto_kit::do_enc()
 {
 #ifndef _NO_CRYPTO
@@ -40,18 +58,16 @@ void proto_kit::do_dec()
 	
 	try
 	{
-		std::string hash_recv(itr, hash_size);
-		if (hash_real != hash_recv)
-			throw(msgr_proto_error("Error:Hashing failed"));
+        if (!compare_data(hash_real.data(), itr, hash_size))
+            throw(msgr_proto_error("Error:Hashing failed"));
 
-		itr -= sizeof(rand_num_type);
-		rand_num_type rand_num = boost::endian::native_to_little(get_rand_num_recv());
-		if (*reinterpret_cast<const rand_num_type*>(itr) != rand_num)
-			throw(msgr_proto_error("Error:Checking failed"));
+        itr -= sizeof(rand_num_type);
+        if (!compare_little_endian(itr, get_rand_num_recv()))
+            throw(msgr_proto_error("Error:Checking failed"));
 
-		itr -= sizeof(session_id_type);
-		if (*reinterpret_cast<const session_id_type*>(itr) != session_id)
-			throw(msgr_proto_error("Error:Checking failed"));
+        itr -= sizeof(session_id_type);
+        if (!compare_little_endian(itr, session_id))
+            throw(msgr_proto_error("Error:Checking failed"));
 	}
 	catch (msgr_proto_error& ex)
 	{
@@ -781,8 +797,10 @@ void session::read_header(const std::shared_ptr<read_end_watcher>& watcher)
 		{
 			if (ec)
 				throw(std::runtime_error("Socket Error:" + ec.message()));
-			data_size_type size_recv = *(reinterpret_cast<data_size_type*>(read_buffer.get()));
-			size_recv = boost::endian::little_to_native(size_recv);
+			data_size_type size_recv = 0;
+			const char *data = read_buffer.get(), *data_end = read_buffer.get() + sizeof(data_size_type);
+			for (int i = 0; data < data_end; data++, i += 8)
+				size_recv |= static_cast<data_size_type>(static_cast<uint8_t>(*data)) << i;
 			read_data(size_recv, std::make_shared<std::string>(), watcher);
 		}
 		catch (std::exception &ex)
