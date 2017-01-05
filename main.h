@@ -97,7 +97,7 @@ private:
     int selected = -1;
     std::vector<user_id_type> user_id_map;
 
-    std::unique_ptr<ECC_crypto_helper> cryp_helper;
+    std::unique_ptr<crypto::provider> cryp_helper;
 
     std::unique_ptr<char[]> file_block;
 };
@@ -128,7 +128,7 @@ public:
         asio::ip::tcp::endpoint _local_endpoint,
         crypto::server& _crypto_srv,
         QtWindowInterface* _window,
-        ECC_crypto_helper& cryp_helper);
+        crypto::provider& cryp_helper);
     ~qt_srv_interface();
 
     virtual void on_data(user_id_type id, const std::string& data);

@@ -46,7 +46,7 @@ QtWindowInterface::QtWindowInterface()
     QDir::setCurrent(DATA_PATH);
 
     fs.cd(DATA_PATH);
-    cryp_helper = std::make_unique<ECC_crypto_helper>(fs.filePath(privatekeyFile).toLocal8Bit().data());
+    cryp_helper = std::make_unique<crypto::provider>(fs.filePath(privatekeyFile).toLocal8Bit().data());
 
     port_type portListen = 4826;
     port_type portsBegin = 5000, portsEnd = 9999;

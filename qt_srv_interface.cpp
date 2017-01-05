@@ -75,8 +75,8 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
     asio::ip::tcp::endpoint _local_endpoint,
     crypto::server& _crypto_srv,
     QtWindowInterface *_window,
-    ECC_crypto_helper& cryp_helper)
-    :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _crypto_srv, cryp_helper), window(*_window)
+    crypto::provider& _cryp_helper)
+    :msgr_proto::server(_main_io_service, _misc_io_service, _local_endpoint, _cryp_helper, _crypto_srv), window(*_window)
 {
     IMG_TMP_PATH = TEMP_PATH;
     IMG_TMP_PATH.mkpath(IMG_TMP_PATH_NAME);
