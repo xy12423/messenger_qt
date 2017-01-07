@@ -13,28 +13,25 @@ Item {
 
     RowLayout {
         id: rowLayout_addr
-        width: 150
-        height: 18
-        anchors.verticalCenterOffset: -50
+        width: 200
+        height: 20
+        anchors.verticalCenterOffset: -60
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
 
 
         Text {
             id: text_addr
-            width: 55
-            height: 18
+            height: 20
             Layout.fillHeight: true
-            Layout.fillWidth: true
             text: qsTr("Address:")
-            font.pixelSize: 12
+            verticalAlignment: Text.AlignVCenter
+            font.pointSize: 12
         }
 
         Rectangle {
             id: rectangle_addr
-            width: 90
-            height: 18
-            Layout.minimumWidth: 90
+            height: 20
             Layout.fillHeight: true
             Layout.fillWidth: true
             anchors.left: text_addr.right
@@ -46,34 +43,32 @@ Item {
                 id: textInput_addr
                 anchors.fill: parent
 
-                font.pixelSize: 12
+                verticalAlignment: Text.AlignVCenter
+                font.pointSize: 12
             }
         }
     }
 
     RowLayout {
         id: rowLayout_port
-        width: 150
-        height: 18
+        width: 200
+        height: 20
         anchors.top: rowLayout_addr.bottom
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
 
         Text {
             id: text_port
-            width: 30
-            height: 18
+            height: 20
             Layout.fillHeight: true
-            Layout.fillWidth: true
             text: qsTr("Port:")
-            font.pixelSize: 12
+            verticalAlignment: Text.AlignVCenter
+            font.pointSize: 12
         }
 
         Rectangle {
             id: rectangle_port
-            width: 100
-            height: 18
-            Layout.minimumWidth: 100
+            height: 20
             Layout.fillHeight: true
             Layout.fillWidth: true
             anchors.left: text_port.right
@@ -86,7 +81,8 @@ Item {
                 anchors.fill: parent
 
                 text: "4826"
-                font.pixelSize: 12
+                verticalAlignment: Text.AlignVCenter
+                font.pointSize: 12
             }
         }
     }

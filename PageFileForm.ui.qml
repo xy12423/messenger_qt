@@ -14,6 +14,8 @@ Item {
     property alias listModel_file: listModel_file
     property alias text_path: text_path
     property int selectedIndex
+    property url folderIcon
+    property url fileIcon
 
     ColumnLayout {
         id: columnLayout_pagefile
@@ -53,11 +55,9 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.verticalCenterOffset: 0
 
-                    font.pixelSize: 12
+                    font.pointSize: 12
                 }
             }
-
-
         }
 
         ListView {
@@ -79,12 +79,28 @@ Item {
                 id: item_listViewItem
                 width: parent.width
                 height: 20
-                Text {
-                    text: fileName
-                    anchors.left: parent.left
-                    anchors.leftMargin: 5
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.verticalCenterOffset: 0
+                RowLayout
+                {
+                    anchors.fill: parent
+                    Image {
+                        id: image_listViewItem
+                        Layout.preferredWidth: 20
+                        Layout.preferredHeight: 20
+                        Layout.fillHeight: true
+
+                        source: fileIsDir ? folderIcon : fileIcon
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        anchors.left: image_listViewItem.right
+                        anchors.leftMargin: 5
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: 0
+
+                        text: fileName
+                        verticalAlignment: TextField.AlignVCenter
+                    }
                 }
                 MouseArea {
                     id: mouse_listViewItem

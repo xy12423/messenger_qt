@@ -18,7 +18,7 @@ Item {
         ListView {
             id: listView_users
             width: parent.width
-            height: 360
+            height: 440
             orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true

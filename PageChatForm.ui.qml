@@ -20,7 +20,7 @@ Item {
         Item
         {
             width: parent.width
-            height: 360
+            height: 405
             Layout.fillHeight: true
             Layout.fillWidth: true
 
@@ -33,7 +33,7 @@ Item {
                     id: text_content
 
                     textFormat: Text.RichText
-                    font.pixelSize: 12
+                    font.pointSize: 15
                     textMargin: 2
                     wrapMode: TextArea.Wrap
                     readOnly: true
@@ -46,22 +46,20 @@ Item {
         Rectangle {
             id: rectangle_input
             width: parent.width
-            height: 20
+            height: 35
             Layout.fillWidth: true
 
             color: "#e6e6e6"
 
-            TextInput {
+            TextField {
                 id: text_input
                 anchors.fill: parent
-
-                font.pixelSize: 12
+                bottomPadding: 5
+                rightPadding: 5
+                leftPadding: 5
+                topPadding: 5
+                verticalAlignment: TextField.AlignVCenter
             }
-        }
-
-        Item {
-            height: 5
-            Layout.fillWidth: true
         }
 
         RowLayout {

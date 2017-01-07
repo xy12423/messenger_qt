@@ -2,6 +2,8 @@ import QtQuick 2.7
 
 PageFileForm {
     id: form_pagefile
+    folderIcon: "qrc:/images/folder.png"
+    fileIcon: "qrc:/images/file.png"
 
     signal fileReqFinish()
 

@@ -10,5 +10,8 @@
         <file>PageImg.qml</file>
         <file>PageFileForm.ui.qml</file>
         <file>PageFile.qml</file>
+        <file>images/folder.png</file>
+        <file>images/image.png</file>
+        <file>images/file.png</file>
     </qresource>
 </RCC>
