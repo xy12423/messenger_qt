@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef _H_STDAFX
+#define _H_STDAFX
+
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -78,4 +81,6 @@ namespace std
         return std::string(buf);
     }
 }
+#endif
+
 #endif

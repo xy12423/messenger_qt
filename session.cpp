@@ -23,9 +23,9 @@ bool compare_little_endian(const char* data, _Ty num)
 	return true;
 }
 
-void proto_kit::do_enc()
+void proto_kit::do_enc(crypto::task& task)
 {
-	std::string &data = enc_task_que.front().data;
+	std::string &data = task.data;
 	std::string &write_raw = data, write_data;
 	rand_num_type rand_num = get_rand_num_send();
 	write_raw.reserve(sizeof(session_id_type) + sizeof(rand_num_type) + write_raw.size() + hash_size);
@@ -37,12 +37,12 @@ void proto_kit::do_enc()
 	provider.encrypt(write_data, write_raw, e1);
 	insLen(write_raw);
 
-	enc_task_que.front().callback(true, empty_string);
+	task.callback(true, empty_string);
 }
 
-void proto_kit::do_dec()
+void proto_kit::do_dec(crypto::task& task)
 {
-	std::string &data = dec_task_que.front().data;
+	std::string &data = task.data;
 	std::string decrypted_data;
 
 	provider.decrypt(data, decrypted_data, d0);
@@ -68,12 +68,12 @@ void proto_kit::do_dec()
 	}
 	catch (msgr_proto_error& ex)
 	{
-		dec_task_que.front().callback(false, std::string(ex.what()));
+		task.callback(false, std::string(ex.what()));
 		return;
 	}
 
 	data.erase(data.size() - (sizeof(session_id_type) + sizeof(rand_num_type) + hash_size));
-	dec_task_que.front().callback(true, empty_string);
+	task.callback(true, empty_string);
 }
 
 void pre_session::read_key_header()
@@ -116,9 +116,7 @@ void pre_session::read_key()
 			if (ec)
 				throw(std::runtime_error("Socket Error:" + ec.message()));
 			key_string.assign(key_buffer.release(), key_size);
-			if (key_string.empty() || srv.check_key_connected(key_string))
-				key_string.clear();
-			else
+			if (!key_string.empty())
 				stage1();
 		}
 		catch (std::exception &ex)
@@ -219,7 +217,11 @@ void pre_session::read_secret()
 		misc_io_service.post([this, watcher_holder]() {
 			try
 			{
-				crypto_prov.decrypt(reinterpret_cast<byte*>(pubB_buffer.get()), pubB_size, pubB, crypto_prov.GetPublicKey());
+				std::string pubB_str;
+				crypto_prov.decrypt(reinterpret_cast<byte*>(pubB_buffer.get()), pubB_size, pubB_str, crypto_prov.GetPublicKey());
+				if (pubB_str.size() != crypto_prov.dh_pub_block_size)
+					throw(std::runtime_error("Failed to reach shared secret"));
+				memcpy(pubB, pubB_str.data(), crypto_prov.dh_pub_block_size);
 				if (!crypto_prov.dhAgree(key, priv, pubB))
 					throw(std::runtime_error("Failed to reach shared secret"));
 				write_iv();
@@ -732,7 +734,6 @@ void session::shutdown()
 	socket->close(ec);
 
 	crypto_kit->stop();
-	crypto_kit = nullptr;
 }
 
 void session::send(const std::string& data, int priority, write_callback&& callback)

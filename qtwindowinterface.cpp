@@ -347,9 +347,9 @@ void QtWindowInterface::OnSendFileBlock(int uID)
 {
     try
     {
-        if (user_ext.count(uID) < 1)
+        if (uID < 0 || uID > std::numeric_limits<user_id_type>::max() || user_ext.count(static_cast<user_id_type>(uID)) < 1)
             return;
-        std::list<user_ext_type::send_task> &tasks = user_ext.at(uID).sendTasks;
+        std::list<user_ext_type::send_task> &tasks = user_ext.at(static_cast<user_id_type>(uID)).sendTasks;
         if (tasks.empty())
             return;
         user_ext_type::send_task &task = tasks.front();

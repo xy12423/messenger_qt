@@ -1,4 +1,5 @@
 QT += qml quick
+CONFIG += c++14
 
 SOURCES += main.cpp \
     crypto.cpp \
@@ -31,7 +32,7 @@ win32 {
 }
 
 android {
-    QMAKE_CXXFLAGS += -std=c++14 -DANDROID -DASIO_STANDALONE -fexceptions -frtti
+    QMAKE_CXXFLAGS += -DANDROID -DASIO_STANDALONE -fexceptions -frtti
 
     LIBS += -LD:/androidlibs/$$ANDROID_TARGET_ARCH
     LIBS += -lcryptopp
