@@ -33,7 +33,7 @@ Item {
                     id: text_content
 
                     textFormat: Text.RichText
-                    font.pointSize: 15
+                    font.pixelSize: 15
                     textMargin: 2
                     wrapMode: TextArea.Wrap
                     readOnly: true

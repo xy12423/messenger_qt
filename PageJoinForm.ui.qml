@@ -26,7 +26,7 @@ Item {
             Layout.fillHeight: true
             text: qsTr("Address:")
             verticalAlignment: Text.AlignVCenter
-            font.pointSize: 12
+            font.pixelSize: 12
         }
 
         Rectangle {
@@ -44,7 +44,7 @@ Item {
                 anchors.fill: parent
 
                 verticalAlignment: Text.AlignVCenter
-                font.pointSize: 12
+                font.pixelSize: 12
             }
         }
     }
@@ -63,7 +63,7 @@ Item {
             Layout.fillHeight: true
             text: qsTr("Port:")
             verticalAlignment: Text.AlignVCenter
-            font.pointSize: 12
+            font.pixelSize: 12
         }
 
         Rectangle {
@@ -82,7 +82,7 @@ Item {
 
                 text: "4826"
                 verticalAlignment: Text.AlignVCenter
-                font.pointSize: 12
+                font.pixelSize: 12
             }
         }
     }

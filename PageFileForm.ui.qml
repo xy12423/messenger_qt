@@ -55,7 +55,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.verticalCenterOffset: 0
 
-                    font.pointSize: 12
+                    font.pixelSize: 12
                 }
             }
         }
