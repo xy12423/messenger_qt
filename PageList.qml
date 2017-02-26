@@ -5,7 +5,7 @@ PageListForm {
     signal connectReq()
 
     Connections {
-        target: cppInterface;
+        target: cppInterface
         onJoined: {
             listModel_users.insert(index, { "name": name })
         }
@@ -19,7 +19,7 @@ PageListForm {
     }
 
     Connections {
-        target: cppInterface;
+        target: cppInterface
         onLeft: {
             listModel_users.remove(index)
         }

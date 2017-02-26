@@ -3,16 +3,17 @@
 #ifndef _H_MAIN
 #define _H_MAIN
 
-#include <QObject>
-#include <QString>
-#include <QUrl>
-#include <QStandardPaths>
 #include "session.h"
 #include "threads.h"
+
+enum plugin_flags {
+    plugin_file_storage = 0x1,
+};
 
 struct user_ext_type
 {
     QString addr;
+    int feature = 0;
     struct log_type
     {
         log_type(bool _is_recv, const char* _msg) :is_recv(_is_recv), is_image(false), msg(_msg) {}
@@ -39,7 +40,9 @@ struct user_ext_type
     };
     std::list<send_task> sendTasks;
     QString recvFile;
-    int blockLast;
+    int blockLast = 0;
+
+    std::vector<std::pair<std::string, std::string>> file_list;
 };
 
 class qt_srv_interface;
@@ -60,6 +63,8 @@ public:
     void RecvImg(user_id_type id, const QString& path);
     void RecvFileH(user_id_type id, const QString& file_name, size_t block_count);
     void RecvFileB(user_id_type id, const char* data, size_t size);
+    void RecvFeature(user_id_type id, int flag);
+    void RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>&);
     void Join(user_id_type id, const std::string& key);
     void Leave(user_id_type id);
 
@@ -72,8 +77,11 @@ public:
 signals:
     void joined(int index, const QString& name);
     void left(int index);
-    void refreshChat(const QString& content);
     void selectIndex(int index);
+    void refreshChat(const QString& content);
+
+    void enableFeature(int flag);
+    void refreshFilelist(const QStringList& files);
 
     void sendFileBlock(int id);
 public slots:
@@ -82,13 +90,18 @@ public slots:
     void sendMsg(const QString& msg);
     void sendImg(const QUrl& img_path);
     void sendFile(const QUrl& file_path);
+
+    void reqFilelist();
+    void reqDownloadFile(int file_id);
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
 private:
     QString GenerateLogStr(user_ext_type& usr);
+    QStringList GenerateFilelist();
+    QStringList GenerateFilelist(user_ext_type& usr);
 
-    iosrvThread threadNetwork, threadMisc, threadCrypto;
+    iosrvThread threadNetwork, threadMisc;
     std::unique_ptr<crypto::server> crypto_srv;
     std::unique_ptr<qt_srv_interface> srv;
 
@@ -96,6 +109,8 @@ private:
 
     int selected = -1;
     std::vector<user_id_type> user_id_map;
+
+    std::vector<std::string> file_id_map;
 
     std::unique_ptr<crypto::provider> cryp_helper;
 
@@ -107,6 +122,12 @@ enum pac_type {
     PAC_TYPE_FILE_H,
     PAC_TYPE_FILE_B,
     PAC_TYPE_IMAGE,
+    PAC_TYPE_PLUGIN_FLAG,
+    PAC_TYPE_PLUGIN_DATA,
+};
+
+enum plugin_pak_type {
+    pak_file_storage = 0x1,
 };
 
 extern const char* IMG_TMP_PATH_NAME;
@@ -145,7 +166,7 @@ public:
     void set_static_port(port_type port) { static_port = port; }
     void new_image_id(int& id) { id = image_id; image_id++; }
 
-    virtual void on_error(const char* err) { qDebug(err); }
+    virtual void on_error(const char* err) { qWarning(QString::fromLocal8Bit(err).toUtf8()); }
 private:
     std::unordered_map<std::string, std::string> certifiedKeys;
     std::list<port_type> ports;

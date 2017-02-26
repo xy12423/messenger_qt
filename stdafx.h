@@ -44,8 +44,13 @@ namespace asio = boost::asio;
 #include <cryptopp/oids.h>
 #include <cryptopp/modes.h>
 
-#include <QGuiApplication>
+#include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QUrl>
 #include <QDir>
+#include <QStandardPaths>
+#include <QGuiApplication>
 
 #ifdef _MSC_VER
 #ifdef _DEBUG
@@ -76,7 +81,7 @@ namespace std
 {
     inline std::string to_string(int n)
     {
-        char buf[11];
+        char buf[20];
         sprintf(buf, "%d", n);
         return std::string(buf);
     }

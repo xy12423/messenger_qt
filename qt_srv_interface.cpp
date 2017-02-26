@@ -20,6 +20,7 @@ struct data_view
 
     template <typename _Ty>
     void read(_Ty& ret);
+    inline void read(char& ret) { if (size < 1) throw(qt_srv_interface_error()); ret = *data; data += 1; size -= 1; }
     inline void read(char* dst, size_t _size) { if (size < _size) throw(qt_srv_interface_error()); memcpy(dst, data, _size); data += _size; size -= _size; }
     inline void read(std::string& dst, size_t _size) { if (size < _size) throw(qt_srv_interface_error()); dst.append(data, _size); data += _size; size -= _size; }
     inline void check(size_t count) const { if (size < count) throw(qt_srv_interface_error()); }
@@ -219,6 +220,44 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.skip(image_size);
 
                 window.RecvImg(id, imagefile_path);
+                break;
+            }
+            case PAC_TYPE_PLUGIN_FLAG:
+            {
+                uint32_t flag;
+                data.read(flag);
+                window.RecvFeature(id, flag);
+                break;
+            }
+            case PAC_TYPE_PLUGIN_DATA:
+            {
+                char type;
+                data.read(type);
+                switch (type)
+                {
+                    case pak_file_storage:
+                    {
+                        uint32_t count, size;
+                        std::string key_buf, name_buf;
+                        std::vector<std::pair<std::string, std::string>> list;
+                        data.read(count);
+                        list.reserve(count);
+                        for (; count > 0; count--)
+                        {
+                            data.read(size);
+                            data.read(key_buf, size);
+                            data.read(size);
+                            data.read(name_buf, size);
+                            list.push_back(std::make_pair(std::move(key_buf), std::move(name_buf)));
+                            key_buf.clear();
+                            name_buf.clear();
+                        }
+
+                        window.RecvFileList(id, list);
+                        break;
+                    }
+                }
+
                 break;
             }
             default:

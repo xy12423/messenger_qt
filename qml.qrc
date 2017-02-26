@@ -13,5 +13,9 @@
         <file>images/folder.png</file>
         <file>images/image.png</file>
         <file>images/file.png</file>
+        <file>PageExt.qml</file>
+        <file>PageExtForm.ui.qml</file>
+        <file>ext_features/PageFileStorage.qml</file>
+        <file>ext_features/PageFileStorageForm.ui.qml</file>
     </qresource>
 </RCC>

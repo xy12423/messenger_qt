@@ -6,7 +6,7 @@ PageChatForm {
     signal fileReq()
 
     Connections {
-        target: cppInterface;
+        target: cppInterface
         onRefreshChat: {
             text_content.clear()
             text_content.append(content)

@@ -40,6 +40,7 @@ Item {
                 }
 
                 ScrollBar.vertical: ScrollBar {}
+                ScrollBar.horizontal: ScrollBar {}
             }
         }
 

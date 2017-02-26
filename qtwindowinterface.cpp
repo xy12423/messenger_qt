@@ -53,7 +53,7 @@ QtWindowInterface::QtWindowInterface()
     bool use_v6 = false;
     int crypto_worker = 1;
 
-    crypto_srv = std::make_unique<crypto::server>(threadCrypto.get_io_service(), crypto_worker);
+    crypto_srv = std::make_unique<crypto::server>(threadNetwork.get_io_service(), crypto_worker);
     srv = std::make_unique<qt_srv_interface>(threadNetwork.get_io_service(), threadMisc.get_io_service(),
         asio::ip::tcp::endpoint((use_v6 ? asio::ip::tcp::v6() : asio::ip::tcp::v4()), portListen),
         *crypto_srv.get(),
@@ -65,7 +65,6 @@ QtWindowInterface::QtWindowInterface()
 
     srv->start();
 
-    threadCrypto.start();
     threadMisc.start();
     threadNetwork.start();
 
@@ -78,10 +77,9 @@ QtWindowInterface::~QtWindowInterface()
     srv->shutdown();
     crypto_srv->stop();
 
-    threadCrypto.stop();
     threadNetwork.stop();
     threadMisc.stop();
-    while (!threadCrypto.is_stopped() || !threadNetwork.is_stopped() || !threadMisc.is_stopped());
+    while (!threadNetwork.is_stopped() || !threadMisc.is_stopped());
 
     srv.reset();
     crypto_srv.reset();
@@ -127,6 +125,24 @@ void QtWindowInterface::RecvFileB(user_id_type id, const char* data, size_t size
     }
 }
 
+void QtWindowInterface::RecvFeature(user_id_type id, int flag)
+{
+    user_ext_type &usr = user_ext.at(id);
+    usr.feature = flag;
+    if (selected != -1 && id == user_id_map.at(selected))
+        emit enableFeature(flag);
+}
+
+void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>& list)
+{
+    user_ext_type &usr = user_ext.at(id);
+    if ((usr.feature & plugin_file_storage) == 0)
+        return;
+    usr.file_list = std::move(list);
+    if (selected != -1 && id == user_id_map.at(selected))
+        emit refreshFilelist(GenerateFilelist(usr));
+}
+
 void QtWindowInterface::Join(user_id_type id, const std::string&)
 {
     user_ext_type &ext = user_ext[id];
@@ -154,6 +170,8 @@ void QtWindowInterface::Leave(user_id_type id)
         emit selectIndex(selected);
     }
     emit left(i);
+    if (selected > i)
+        selected -= 1;
     user_id_map.erase(itr);
     user_ext.erase(id);
 }
@@ -205,7 +223,7 @@ void QtWindowInterface::sendMsg(const QString& msg)
             msg_utf8.append(msg_buf.data());
 
             user_id_type uID = user_id_map.at(selected);
-            srv->send_data(uID, msg_utf8, msgr_proto::session::priority_msg);
+            srv->send_data(uID, std::move(msg_utf8), msgr_proto::session::priority_msg);
             user_ext.at(uID).log.emplace_back(false, msg);
             emit refreshChat(GenerateLogStr(user_ext.at(uID)));
         }
@@ -328,14 +346,66 @@ void QtWindowInterface::sendFile(const QUrl& url)
     }
 }
 
+void QtWindowInterface::reqFilelist()
+{
+    try
+    {
+        user_id_type uID = user_id_map.at(selected);
+        user_ext_type &usr = user_ext.at(uID);
+        if ((usr.feature & plugin_file_storage) == 0)
+            return;
+        emit refreshFilelist(GenerateFilelist(usr));
+
+        std::string data;
+        data.push_back(PAC_TYPE_PLUGIN_DATA);
+        data.push_back(pak_file_storage);
+        data.push_back(0);
+        srv->send_data(uID, data, msgr_proto::session::priority_plugin);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::reqDownloadFile(int file_id)
+{
+    try
+    {
+        user_id_type uID = user_id_map.at(selected);
+        user_ext_type &usr = user_ext.at(uID);
+        if ((usr.feature & plugin_file_storage) == 0)
+            return;
+
+        std::string data;
+        data.push_back(PAC_TYPE_PLUGIN_DATA);
+        data.push_back(pak_file_storage);
+        data.push_back(1);
+        data.append(file_id_map.at(file_id));
+        srv->send_data(uID, data, msgr_proto::session::priority_plugin);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
 void QtWindowInterface::OnSelectChanged(int index)
 {
     try
     {
         if (index != -1)
-            emit refreshChat(GenerateLogStr(user_ext.at(user_id_map.at(index))));
+        {
+            user_ext_type &usr = user_ext.at(user_id_map.at(index));
+            emit enableFeature(usr.feature);
+            emit refreshChat(GenerateLogStr(usr));
+        }
         else
+        {
+            emit enableFeature(0);
             emit refreshChat(EmptyQString);
+            emit refreshFilelist(GenerateFilelist());
+        }
     }
     catch (std::exception& ex)
     {
@@ -354,7 +424,7 @@ void QtWindowInterface::OnSendFileBlock(int uID)
             return;
         user_ext_type::send_task &task = tasks.front();
         if (task.blockCount == 1)
-            srv->send_data(uID, std::move(task.header), msgr_proto::session::priority_file);
+            srv->send_data(static_cast<user_id_type>(uID), std::move(task.header), msgr_proto::session::priority_file);
 
         std::string sendBuf;
         task.fin.read(file_block.get(), FileBlockLen);
@@ -367,7 +437,7 @@ void QtWindowInterface::OnSendFileBlock(int uID)
         sendBuf.push_back(static_cast<uint8_t>(sizeRead >> 24));
         sendBuf.append(file_block.get(), sizeRead);
 
-        srv->send_data(uID, std::move(sendBuf), msgr_proto::session::priority_file, [this, uID]() {
+        srv->send_data(static_cast<user_id_type>(uID), std::move(sendBuf), msgr_proto::session::priority_file, [this, uID]() {
             emit sendFileBlock(uID);
         });
 
@@ -379,6 +449,26 @@ void QtWindowInterface::OnSendFileBlock(int uID)
     {
         srv->on_exception(ex);
     }
+}
+
+QStringList QtWindowInterface::GenerateFilelist()
+{
+    file_id_map.clear();
+    return QStringList();
+}
+
+QStringList QtWindowInterface::GenerateFilelist(user_ext_type &usr)
+{
+    QStringList name_list;
+    file_id_map.clear();
+
+    for (auto itr = usr.file_list.begin(), itr_end = usr.file_list.end(); itr != itr_end; itr++)
+    {
+        name_list.append(QString::fromStdString(itr->second));
+        file_id_map.push_back(itr->first);
+    }
+
+    return name_list;
 }
 
 QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)

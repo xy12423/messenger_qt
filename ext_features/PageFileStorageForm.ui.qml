@@ -3,28 +3,30 @@ import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.0
 
 Item {
-    id: item_pagelist
+    id: item_pagefstorage
     width: 320
     height: 480
-    property alias listView_users: listView_users
-    property alias listModel_users: listModel_users
-    property alias button_add: button_add
-    property alias button_del: button_del
+    property alias listView_fstorage: listView_fstorage
+    property alias listModel_fstorage: listModel_fstorage
+    property alias button_download: button_download
+    property alias button_cancel: button_cancel
+    property int selectedIndex
 
     ColumnLayout {
-        id: columnLayout_pagelist
+        id: columnLayout_pagefstorage
         anchors.fill: parent
 
         ListView {
-            id: listView_users
+            id: listView_fstorage
             width: parent.width
             height: 440
             orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
+            currentIndex: selectedIndex
 
             model: ListModel {
-                id: listModel_users
+                id: listModel_fstorage
             }
 
             delegate: Item {
@@ -40,7 +42,7 @@ Item {
                 }
                 MouseArea {
                     anchors.fill: parent
-                    onClicked: cppInterface.index = index
+                    onClicked: selectedIndex = index
                 }
             }
             highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
@@ -48,24 +50,24 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_pagelist
+            id: rowLayout_pagefstorage
             width: parent.width
             height: 40
             Layout.fillWidth: true
 
             Button {
-                id: button_add
+                id: button_download
                 height: parent.height
-                text: qsTr("Connect")
+                text: qsTr("Download")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 spacing: 5
             }
 
             Button {
-                id: button_del
+                id: button_cancel
                 height: parent.height
-                text: qsTr("Disconnect")
+                text: qsTr("Cancel")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 spacing: 5

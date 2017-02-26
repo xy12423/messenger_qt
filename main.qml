@@ -1,6 +1,7 @@
 import QtQuick 2.7
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.0
+import "ext_features"
 
 ApplicationWindow {
     id: main_window
@@ -24,7 +25,7 @@ ApplicationWindow {
                 anchors.fill: parent
 
                 Connections {
-                    target: page_join;
+                    target: page_join
                     onConnectReqFinish: {
                         stack_view.pop()
                     }
@@ -42,7 +43,7 @@ ApplicationWindow {
                 anchors.fill: parent
 
                 Connections {
-                    target: page_img;
+                    target: page_img
                     onImageReqFinish: {
                         stack_view.pop()
                     }
@@ -60,8 +61,26 @@ ApplicationWindow {
                 anchors.fill: parent
 
                 Connections {
-                    target: page_file;
+                    target: page_file
                     onFileReqFinish: {
+                        stack_view.pop()
+                    }
+                }
+            }
+        }
+    }
+
+    Component {
+        id: component_page_fstorage
+
+        Item {
+            PageFileStorage {
+                id: page_fstorage
+                anchors.fill: parent
+
+                Connections {
+                    target: page_fstorage
+                    onReqFinish: {
                         stack_view.pop()
                     }
                 }
@@ -80,7 +99,7 @@ ApplicationWindow {
             PageList {
                 id: page_list
                 Connections {
-                    target: page_list;
+                    target: page_list
                     onConnectReq: {
                         stack_view.push(component_page_join)
                     }
@@ -91,7 +110,7 @@ ApplicationWindow {
                 id: page_chat
 
                 Connections {
-                    target: page_chat;
+                    target: page_chat
                     onImageReq: {
                         if (cppInterface.index != -1)
                         {
@@ -101,11 +120,25 @@ ApplicationWindow {
                 }
 
                 Connections {
-                    target: page_chat;
+                    target: page_chat
                     onFileReq: {
                         if (cppInterface.index != -1)
                         {
                             stack_view.push(component_page_file)
+                        }
+                    }
+                }
+            }
+
+            PageExt {
+                id: page_ext
+
+                Connections {
+                    target: page_ext
+                    onSelectFileStorage: {
+                        if (cppInterface.index != -1)
+                        {
+                            stack_view.push(component_page_fstorage)
                         }
                     }
                 }
@@ -120,6 +153,9 @@ ApplicationWindow {
             }
             TabButton {
                 text: qsTr("Chat")
+            }
+            TabButton {
+                text: qsTr("Extra")
             }
         }
     }

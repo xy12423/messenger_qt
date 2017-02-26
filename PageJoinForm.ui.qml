@@ -90,7 +90,7 @@ Item {
     Button {
         id: button_conn
         width: 150
-        height: 18
+        height: 22
         anchors.top: rowLayout_port.bottom
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
@@ -100,7 +100,7 @@ Item {
     Button {
         id: button_cancel_conn
         width: 150
-        height: 18
+        height: 22
         anchors.top: button_conn.bottom
         anchors.topMargin: 10
         anchors.horizontalCenter: parent.horizontalCenter
