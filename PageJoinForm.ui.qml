@@ -1,9 +1,8 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 
 Item {
-    id: item_pagejoin
     width: 320
     height: 480
     property alias button_cancel_conn: button_cancel_conn
@@ -19,7 +18,6 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
 
-
         Text {
             id: text_addr
             height: 20
@@ -30,7 +28,6 @@ Item {
         }
 
         Rectangle {
-            id: rectangle_addr
             height: 20
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -67,7 +64,6 @@ Item {
         }
 
         Rectangle {
-            id: rectangle_port
             height: 20
             Layout.fillHeight: true
             Layout.fillWidth: true

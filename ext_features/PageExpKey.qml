@@ -1,11 +1,12 @@
 import QtQuick 2.8
+import ".."
 
 PageFileForm {
-    property url startFolder
-    property var filter: ["*"]
+    folderIcon: "qrc:/images/folder.png"
+    fileIcon: "qrc:/images/file.png"
+    property int keyIndex: -1
 
-    signal reqFinishOK(url path)
-    signal reqFinishCancel()
+    signal reqFinish()
 
     button_back.onClicked: {
         if (listModel_file.parentFolder === cppInterface.localStrToUrl(""))
@@ -26,19 +27,25 @@ PageFileForm {
     }
 
     button_ok_file.onClicked: {
-        if (!listModel_file.isFolder(selectedIndex))
-            reqFinishOK(listModel_file.get(selectedIndex, "fileURL"))
+        if (selectedIndex < 1)
+            cppInterface.exportKey(keyIndex, listModel_file.folder, "publickey")
         else
-            reqFinishCancel()
+        {
+            if (listModel_file.isFolder(selectedIndex))
+                cppInterface.exportKey(keyIndex, listModel_file.get(selectedIndex, "fileURL"), "publickey")
+            else
+                cppInterface.exportKey(keyIndex, listModel_file.folder, listModel_file.get(selectedIndex, "fileName"))
+        }
+        reqFinish()
     }
 
     button_cancel_file.onClicked: {
-        reqFinishCancel()
+        reqFinish()
     }
 
     Component.onCompleted: {
-        listModel_file.nameFilters = filter
-        listModel_file.folder = startFolder
+        listModel_file.nameFilters = ["*"]
+        listModel_file.folder = cppInterface.getDownloadPath()
         text_path.text = cppInterface.urlToLocalStr(listModel_file.folder)
     }
 }

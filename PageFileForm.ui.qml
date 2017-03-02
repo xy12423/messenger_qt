@@ -1,10 +1,9 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 import Qt.labs.folderlistmodel 2.1
 
 Item {
-    id: item_pagefile
     width: 320
     height: 480
     property alias button_back: button_back
@@ -13,21 +12,19 @@ Item {
     property alias listView_file: listView_file
     property alias listModel_file: listModel_file
     property alias text_path: text_path
-    property int selectedIndex
-    property url folderIcon
-    property url fileIcon
+    property int selectedIndex: -1
+    property url folderIcon: "qrc:/images/folder.png"
+    property url fileIcon: "qrc:/images/file.png"
 
     ColumnLayout {
-        id: columnLayout_pagefile
         anchors.fill: parent
 
         RowLayout {
-            id: rowLayout_header
             width: parent.width
-            height: 25
+            height: 35
             Layout.fillHeight: true
             Layout.fillWidth: true
-            Layout.preferredHeight: 25
+            Layout.preferredHeight: 35
 
             Button {
                 id: button_back
@@ -36,13 +33,12 @@ Item {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.maximumWidth: parent.height
-                spacing: 5
+                Layout.preferredWidth: parent.height
 
                 text: qsTr("<")
             }
 
             Rectangle {
-                id: rectangle_path
                 height: parent.height
                 Layout.fillHeight: true
                 Layout.fillWidth: true
@@ -63,7 +59,7 @@ Item {
         ListView {
             id: listView_file
             width: parent.width
-            height: 360
+            height: 410
             orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -76,7 +72,6 @@ Item {
             }
 
             delegate: Item {
-                id: item_listViewItem
                 width: parent.width
                 height: 20
                 RowLayout
@@ -103,7 +98,6 @@ Item {
                     }
                 }
                 MouseArea {
-                    id: mouse_listViewItem
                     anchors.fill: parent
 
                     onClicked: selectedIndex = index
@@ -114,12 +108,11 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_footer
             width: parent.width
-            height: 40
+            height: 35
             Layout.fillHeight: true
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: 35
 
             Button {
                 id: button_ok_file
@@ -127,7 +120,6 @@ Item {
                 text: qsTr("OK")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
 
             Button {
@@ -136,7 +128,6 @@ Item {
                 text: qsTr("Cancel")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
         }
     }

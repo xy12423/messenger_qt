@@ -1,6 +1,6 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 import "ext_features"
 
 ApplicationWindow {
@@ -21,14 +21,10 @@ ApplicationWindow {
 
         Item {
             PageJoin {
-                id: page_join
                 anchors.fill: parent
 
-                Connections {
-                    target: page_join
-                    onConnectReqFinish: {
-                        stack_view.pop()
-                    }
+                onConnectReqFinish: {
+                    stack_view.pop()
                 }
             }
         }
@@ -38,15 +34,20 @@ ApplicationWindow {
         id: component_page_img
 
         Item {
-            PageImg {
-                id: page_img
+            PageFile {
                 anchors.fill: parent
 
-                Connections {
-                    target: page_img
-                    onImageReqFinish: {
-                        stack_view.pop()
-                    }
+                fileIcon: "qrc:/images/image.png"
+                startFolder: cppInterface.getPicturesPath()
+                filter: ["*.jpg", "*.png", "*.gif", "*.bmp"]
+
+                onReqFinishOK: {
+                    cppInterface.sendImg(path)
+                    stack_view.pop()
+                }
+
+                onReqFinishCancel: {
+                    stack_view.pop()
                 }
             }
         }
@@ -57,14 +58,54 @@ ApplicationWindow {
 
         Item {
             PageFile {
-                id: page_file
+                anchors.fill: parent
+                startFolder: cppInterface.getDownloadPath()
+
+                onReqFinishOK: {
+                    cppInterface.sendFile(path)
+                    stack_view.pop()
+                }
+
+                onReqFinishCancel: {
+                    stack_view.pop()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: component_page_impkey
+
+        Item {
+            PageFile {
+                anchors.fill: parent
+                startFolder: cppInterface.getDownloadPath()
+
+                onReqFinishOK: {
+                    cppInterface.importKey(path)
+                    stack_view.pop()
+                }
+
+                onReqFinishCancel: {
+                    stack_view.pop()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: component_page_expkey
+
+        Item {
+            id: item_page_expkey
+            property alias keyIndex: page_expkey.keyIndex
+
+            PageExpKey {
+                id: page_expkey
                 anchors.fill: parent
 
-                Connections {
-                    target: page_file
-                    onFileReqFinish: {
-                        stack_view.pop()
-                    }
+                onReqFinish: {
+                    stack_view.pop()
                 }
             }
         }
@@ -75,14 +116,32 @@ ApplicationWindow {
 
         Item {
             PageFileStorage {
-                id: page_fstorage
                 anchors.fill: parent
 
-                Connections {
-                    target: page_fstorage
-                    onReqFinish: {
-                        stack_view.pop()
-                    }
+                onReqFinish: {
+                    stack_view.pop()
+                }
+            }
+        }
+    }
+
+    Component {
+        id: component_page_keyman
+
+        Item {
+            PageKeyMan {
+                anchors.fill: parent
+
+                onReqImport: {
+                    stack_view.push(component_page_impkey)
+                }
+
+                onReqExport: {
+                    stack_view.push(component_page_expkey, { "keyIndex": keyID })
+                }
+
+                onReqFinish: {
+                    stack_view.pop()
                 }
             }
         }
@@ -97,50 +156,31 @@ ApplicationWindow {
             currentIndex: tabBar.currentIndex
 
             PageList {
-                id: page_list
-                Connections {
-                    target: page_list
-                    onConnectReq: {
-                        stack_view.push(component_page_join)
-                    }
+                onConnectReq: {
+                    stack_view.push(component_page_join)
                 }
             }
 
             PageChat {
-                id: page_chat
-
-                Connections {
-                    target: page_chat
-                    onImageReq: {
-                        if (cppInterface.index != -1)
-                        {
-                            stack_view.push(component_page_img)
-                        }
-                    }
+                onImageReq: {
+                    if (cppInterface.index != -1)
+                        stack_view.push(component_page_img)
                 }
 
-                Connections {
-                    target: page_chat
-                    onFileReq: {
-                        if (cppInterface.index != -1)
-                        {
-                            stack_view.push(component_page_file)
-                        }
-                    }
+                onFileReq: {
+                    if (cppInterface.index != -1)
+                        stack_view.push(component_page_file)
                 }
             }
 
             PageExt {
-                id: page_ext
+                onSelectKeyMan: {
+                    stack_view.push(component_page_keyman)
+                }
 
-                Connections {
-                    target: page_ext
-                    onSelectFileStorage: {
-                        if (cppInterface.index != -1)
-                        {
-                            stack_view.push(component_page_fstorage)
-                        }
-                    }
+                onSelectFileStorage: {
+                    if (cppInterface.index != -1)
+                        stack_view.push(component_page_fstorage)
                 }
             }
         }

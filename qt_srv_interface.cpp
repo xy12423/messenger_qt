@@ -111,6 +111,7 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
 
         fin.close();
     }
+    certifiedKeys.emplace(get_public_key(), "Myself");
 }
 
 qt_srv_interface::~qt_srv_interface()
@@ -118,6 +119,8 @@ qt_srv_interface::~qt_srv_interface()
     QDir fs(DATA_PATH);
 
     std::ofstream fout(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
+
+    certifiedKeys.erase(get_public_key());
 
     auto itr = certifiedKeys.begin(), itrEnd = certifiedKeys.end();
     for (; itr != itrEnd; itr++)
@@ -310,3 +313,47 @@ bool qt_srv_interface::new_rand_port(port_type& ret)
     return true;
 }
 
+void qt_srv_interface::import_key(std::istream& fin)
+{
+    std::vector<char> buf_key, buf_ex;
+    char size_buf[sizeof(uint16_t)];
+    fin.read(size_buf, sizeof(uint16_t));
+    while (!fin.eof())
+    {
+        //read key
+        buf_key.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+        fin.read(buf_key.data(), buf_key.size());
+        if (fin.eof())
+            break;
+        //read extra data
+        fin.read(size_buf, sizeof(uint16_t));
+        buf_ex.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+        fin.read(buf_ex.data(), buf_ex.size());
+        if (fin.eof())
+            break;
+        //emplace
+        certifiedKeys.emplace(std::string(buf_key.data(), buf_key.size()), std::string(buf_ex.data(), buf_ex.size()));
+        //read next size
+        fin.read(size_buf, sizeof(uint16_t));
+    }
+}
+
+void qt_srv_interface::export_key(std::ostream& fout, const std::string& key)
+{
+    auto itr = certifiedKeys.find(key);
+    if (itr == certifiedKeys.end())
+        return;
+    const std::string &ex = itr->second;
+    fout.put(static_cast<char>(key.size()));
+    fout.put(static_cast<char>(key.size() >> 8));
+    fout.write(key.data(), key.size());
+    fout.put(static_cast<char>(ex.size()));
+    fout.put(static_cast<char>(ex.size() >> 8));
+    fout.write(ex.data(), ex.size());
+}
+
+void qt_srv_interface::list_key(std::vector<key_item>& ret)
+{
+    for (auto itr = certifiedKeys.cbegin(), itr_end = certifiedKeys.cend(); itr != itr_end; itr++)
+        ret.emplace_back(itr->first, itr->second);
+}

@@ -20,14 +20,26 @@ bool is_image(const char* data, size_t size)
 {
     const char BMP_HEADER[] = "\x42\x4D",
             PNG_HEADER[] = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A",
-            JPG_HEADER[] = "\xFF\xD8\xFF\xE0",
+            JPG_HEADER[] = "\xFF\xD8\xFF\x00",
             GIF_HEADER[] = "\x47\x49\x46";
     if (size >= sizeof(BMP_HEADER) && compare_header(data, BMP_HEADER))
         return true;
     if (size >= sizeof(PNG_HEADER) && compare_header(data, PNG_HEADER))
         return true;
     if (size >= sizeof(JPG_HEADER) && compare_header(data, JPG_HEADER))
-        return true;
+    {
+        switch (data[3])
+        {
+            case '\xE0':
+            case '\xE1':
+            case '\xE2':
+            case '\xE3':
+            case '\xE8':
+            case '\xEB':
+            case '\xED':
+                return true;
+        }
+    }
     if (size >= sizeof(GIF_HEADER) && compare_header(data, GIF_HEADER))
         return true;
     return false;
@@ -46,7 +58,7 @@ QtWindowInterface::QtWindowInterface()
     QDir::setCurrent(DATA_PATH);
 
     fs.cd(DATA_PATH);
-    cryp_helper = std::make_unique<crypto::provider>(fs.filePath(privatekeyFile).toLocal8Bit().data());
+    cryp_helper = std::make_unique<crypto::provider>(fs.filePath(privatekeyFile).toLocal8Bit().data(), true);
 
     port_type portListen = 4826;
     port_type portsBegin = 5000, portsEnd = 9999;
@@ -143,12 +155,20 @@ void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std:
         emit refreshFilelist(GenerateFilelist(usr));
 }
 
-void QtWindowInterface::Join(user_id_type id, const std::string&)
+void QtWindowInterface::Join(user_id_type id, const std::string& key)
 {
     user_ext_type &ext = user_ext[id];
     ext.addr = srv->get_session(id).get_address().c_str();
 
-    QString &name = ext.addr;
+    QString name = ext.addr;
+    try
+    {
+        const std::string &comment = srv->get_key_ex(key);
+        name.append('(');
+        name.append(comment.c_str());
+        name.append(')');
+    }
+    catch (std::out_of_range&) {}
     int new_index = static_cast<int>(user_id_map.size());
     user_id_map.push_back(id);
     emit joined(new_index, name);
@@ -368,7 +388,7 @@ void QtWindowInterface::reqFilelist()
     }
 }
 
-void QtWindowInterface::reqDownloadFile(int file_id)
+void QtWindowInterface::reqDownloadFile(int index)
 {
     try
     {
@@ -381,8 +401,105 @@ void QtWindowInterface::reqDownloadFile(int file_id)
         data.push_back(PAC_TYPE_PLUGIN_DATA);
         data.push_back(pak_file_storage);
         data.push_back(1);
-        data.append(file_id_map.at(file_id));
+        data.append(file_id_map.at(index));
         srv->send_data(uID, data, msgr_proto::session::priority_plugin);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::reqKeylist()
+{
+    try
+    {
+        GenerateKeylist();
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::importKey(const QUrl& key_path)
+{
+    try
+    {
+        QDir fs;
+        QString path = key_path.toLocalFile();
+        if (!path.isEmpty() && fs.exists(path))
+        {
+            std::ifstream fin(path.toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary);
+            srv->import_key(fin);
+            fin.close();
+        }
+        GenerateKeylist();
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::exportKey(int index, const QUrl& key_path, const QString& file_name)
+{
+    try
+    {
+        std::string &key = key_list.at(index).key;
+        QDir fs(key_path.toLocalFile());
+        QString path = fs.filePath(file_name);
+        if (!path.isEmpty())
+        {
+            std::ofstream fout(path.toLocal8Bit().data(), std::ios_base::out | std::ios_base::binary);
+            srv->export_key(fout, key);
+            fout.close();
+        }
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::modifyKey(int index, const QString& ex)
+{
+    try
+    {
+        key_item &key = key_list.at(index);
+        key.ex = ex.toStdString();
+        srv->edit_key(key.key, key.ex);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::trustKey()
+{
+    try
+    {
+        if (selected != -1)
+        {
+            const std::string &key = srv->get_session(user_id_map.at(selected)).get_key();
+            srv->certify_key(key, "");
+            GenerateKeylist();
+        }
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::distrustKey(int index)
+{
+    try
+    {
+        std::string &key = key_list.at(index).key;
+        srv->decertify_key(key);
+        GenerateKeylist();
     }
     catch (std::exception& ex)
     {
@@ -509,4 +626,19 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
         ret.append("<pre>\n</pre>");
     }
     return ret;
+}
+
+void QtWindowInterface::GenerateKeylist()
+{
+    key_list.clear();
+    srv->list_key(key_list);
+    QStringList list_key, list_ex;
+    for (auto itr = key_list.cbegin(), itr_end = key_list.cend(); itr != itr_end; itr++)
+    {
+        std::string str;
+        crypto::provider::hash_short(itr->key, str);
+        list_key.append(QString::fromStdString(str));
+        list_ex.append(QString::fromStdString(itr->ex));
+    }
+    emit refreshKeylist(list_key, list_ex);
 }

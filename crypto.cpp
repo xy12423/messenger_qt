@@ -143,3 +143,81 @@ rand_num_type provider::genRandomNumber()
 	prng.GenerateBlock(reinterpret_cast<byte*>(&t), sizeof(rand_num_type));
 	return t;
 }
+
+void provider::base32(std::string& ret, const byte* buf, size_t size)
+{
+	static const char encode32[] = "ABCDEFGHIJKLMNPQRSTUVWXYZ1234567";
+	constexpr char space32 = '0';
+
+	const byte *ptr_end = buf + size - 5;
+	const byte *ptr = buf;
+	for (; ptr < ptr_end; ptr += 5)
+	{
+		ret.push_back(encode32[ptr[0] >> 3]);
+		ret.push_back(encode32[((ptr[0] << 2) | (ptr[1] >> 6)) & 0x1F]);
+		ret.push_back(encode32[(ptr[1] >> 1) & 0x1F]);
+		ret.push_back(encode32[((ptr[1] << 4) | (ptr[2] >> 4)) & 0x1F]);
+		ret.push_back(encode32[((ptr[2] << 1) | (ptr[3] >> 7)) & 0x1F]);
+		ret.push_back(encode32[(ptr[3] >> 2) & 0x1F]);
+		ret.push_back(encode32[((ptr[3] << 3) | (ptr[4] >> 5)) & 0x1F]);
+		ret.push_back(encode32[ptr[4] & 0x1F]);
+	}
+	switch (ptr - ptr_end)
+	{
+		case 0:
+			ret.push_back(encode32[ptr[0] >> 3]);
+			ret.push_back(encode32[((ptr[0] << 2) | (ptr[1] >> 6)) & 0x1F]);
+			ret.push_back(encode32[(ptr[1] >> 1) & 0x1F]);
+			ret.push_back(encode32[((ptr[1] << 4) | (ptr[2] >> 4)) & 0x1F]);
+			ret.push_back(encode32[((ptr[2] << 1) | (ptr[3] >> 7)) & 0x1F]);
+			ret.push_back(encode32[(ptr[3] >> 2) & 0x1F]);
+			ret.push_back(encode32[((ptr[3] << 3) | (ptr[4] >> 5)) & 0x1F]);
+			ret.push_back(encode32[ptr[4] & 0x1F]);
+			break;
+		case 1:
+			ret.push_back(encode32[ptr[0] >> 3]);
+			ret.push_back(encode32[((ptr[0] << 2) | (ptr[1] >> 6)) & 0x1F]);
+			ret.push_back(encode32[(ptr[1] >> 1) & 0x1F]);
+			ret.push_back(encode32[((ptr[1] << 4) | (ptr[2] >> 4)) & 0x1F]);
+			ret.push_back(encode32[((ptr[2] << 1) | (ptr[3] >> 7)) & 0x1F]);
+			ret.push_back(encode32[(ptr[3] >> 2) & 0x1F]);
+			ret.push_back(encode32[(ptr[3] << 3) & 0x1F]);
+			ret.push_back(space32);
+			break;
+		case 2:
+			ret.push_back(encode32[ptr[0] >> 3]);
+			ret.push_back(encode32[((ptr[0] << 2) | (ptr[1] >> 6)) & 0x1F]);
+			ret.push_back(encode32[(ptr[1] >> 1) & 0x1F]);
+			ret.push_back(encode32[((ptr[1] << 4) | (ptr[2] >> 4)) & 0x1F]);
+			ret.push_back(encode32[(ptr[2] << 1) & 0x1F]);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			break;
+		case 3:
+			ret.push_back(encode32[ptr[0] >> 3]);
+			ret.push_back(encode32[((ptr[0] << 2) | (ptr[1] >> 6)) & 0x1F]);
+			ret.push_back(encode32[(ptr[1] >> 1) & 0x1F]);
+			ret.push_back(encode32[(ptr[1] << 4) & 0x1F]);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			break;
+		case 4:
+			ret.push_back(encode32[ptr[0] >> 3]);
+			ret.push_back(encode32[(ptr[0] << 2) & 0x1F]);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			ret.push_back(space32);
+			break;
+	}
+}
+
+void provider::hash_short(const std::string& src, std::string& dst)
+{
+	CryptoPP::SHA224 hasher;
+	byte result[hash_short_size];
+	memset(result, 0, sizeof(result));
+	hasher.CalculateDigest(result, reinterpret_cast<const byte*>(src.data()), src.size());
+	base32(dst, result, hash_short_size);
+}

@@ -7,6 +7,7 @@
 
 typedef uint64_t rand_num_type;
 static constexpr size_t hash_size = 64;
+static constexpr size_t hash_short_size = 28;
 static constexpr size_t sym_key_size = 32;
 
 namespace crypto
@@ -20,7 +21,7 @@ namespace crypto
 		typedef CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption sym_decryptor;
 		typedef CryptoPP::SecByteBlock byte_block;
 
-		provider(const char* privatekeyFile) : CURVE(CryptoPP::ASN1::secp521r1()), prng(true), dh(CURVE) { initKey(privatekeyFile); }
+		provider(const char* privatekeyFile, bool use_urandom) : CURVE(CryptoPP::ASN1::secp521r1()), prng(!use_urandom), dh(CURVE) { initKey(privatekeyFile); }
 
 		const asym_decryptor& GetPublicKey();
 		std::string GetPublicKeyString();
@@ -42,6 +43,8 @@ namespace crypto
 		rand_num_type genRandomNumber();
 
 		static void hash(const std::string& src, std::string& dst, size_t input_shift = 0);
+		static void hash_short(const std::string& src, std::string& dst);
+		static void base32(std::string& ret, const byte* buf, size_t size);
 
 		size_t dh_priv_block_size, dh_pub_block_size, dh_agree_block_size;
 	private:

@@ -1,19 +1,17 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 
 Item {
-    id: item_pagefstorage
     width: 320
     height: 480
     property alias listView_fstorage: listView_fstorage
     property alias listModel_fstorage: listModel_fstorage
     property alias button_download: button_download
     property alias button_cancel: button_cancel
-    property int selectedIndex
+    property int selectedIndex: -1
 
     ColumnLayout {
-        id: columnLayout_pagefstorage
         anchors.fill: parent
 
         ListView {
@@ -50,7 +48,6 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_pagefstorage
             width: parent.width
             height: 40
             Layout.fillWidth: true
@@ -61,7 +58,6 @@ Item {
                 text: qsTr("Download")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
 
             Button {
@@ -70,7 +66,6 @@ Item {
                 text: qsTr("Cancel")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
         }
     }

@@ -1,9 +1,8 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 
 Item {
-    id: item_pagelist
     width: 320
     height: 480
     property alias listView_users: listView_users
@@ -12,8 +11,8 @@ Item {
     property alias button_del: button_del
 
     ColumnLayout {
-        id: columnLayout_pagelist
         anchors.fill: parent
+        spacing: 0
 
         ListView {
             id: listView_users
@@ -48,27 +47,23 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_pagelist
             width: parent.width
             height: 40
+            Layout.fillHeight: true
             Layout.fillWidth: true
 
             Button {
                 id: button_add
-                height: parent.height
                 text: qsTr("Connect")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
 
             Button {
                 id: button_del
-                height: parent.height
                 text: qsTr("Disconnect")
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
             }
         }
     }

@@ -1,15 +1,14 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 
 Item {
-    id: item_pageext
     width: 320
     height: 480
     property alias listView_exts: listView_exts
     property alias listModel_exts: listModel_exts
-    property int selection
-    property int watcher
+    property int selection: -1
+    property int watcher: 1
 
     ListView {
         id: listView_exts

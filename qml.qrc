@@ -7,7 +7,6 @@
         <file>PageChatForm.ui.qml</file>
         <file>PageJoin.qml</file>
         <file>PageJoinForm.ui.qml</file>
-        <file>PageImg.qml</file>
         <file>PageFileForm.ui.qml</file>
         <file>PageFile.qml</file>
         <file>images/folder.png</file>
@@ -17,5 +16,8 @@
         <file>PageExtForm.ui.qml</file>
         <file>ext_features/PageFileStorage.qml</file>
         <file>ext_features/PageFileStorageForm.ui.qml</file>
+        <file>ext_features/PageKeyMan.qml</file>
+        <file>ext_features/PageKeyManForm.ui.qml</file>
+        <file>ext_features/PageExpKey.qml</file>
     </qresource>
 </RCC>

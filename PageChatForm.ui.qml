@@ -1,9 +1,8 @@
-import QtQuick 2.7
-import QtQuick.Controls 2.0
-import QtQuick.Layouts 1.0
+import QtQuick 2.8
+import QtQuick.Controls 2.1
+import QtQuick.Layouts 1.3
 
 Item {
-    id: item_pagechat
     width: 320
     height: 480
     property alias text_content: text_content
@@ -13,9 +12,8 @@ Item {
     property alias button_image: button_image
 
     ColumnLayout {
-        id: columnLayout_pagechat
-        spacing: 0
         anchors.fill: parent
+        spacing: 0
 
         Item
         {
@@ -25,7 +23,6 @@ Item {
             Layout.fillWidth: true
 
             Flickable {
-                id: flickable_chat
                 anchors.fill: parent
                 flickableDirection: Flickable.VerticalFlick
 
@@ -45,9 +42,9 @@ Item {
         }
 
         Rectangle {
-            id: rectangle_input
             width: parent.width
             height: 35
+            Layout.fillHeight: true
             Layout.fillWidth: true
 
             color: "#e6e6e6"
@@ -64,37 +61,31 @@ Item {
         }
 
         RowLayout {
-            id: rowLayout_pagechat
             width: parent.width
             height: 40
+            Layout.fillHeight: true
             Layout.fillWidth: true
 
             Button {
                 id: button_send
-                height: parent.height
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
 
                 text: qsTr("Send")
             }
 
             Button {
                 id: button_image
-                height: parent.height
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
 
                 text: qsTr("Image")
             }
 
             Button {
                 id: button_file
-                height: parent.height
                 Layout.fillHeight: true
                 Layout.fillWidth: true
-                spacing: 5
 
                 text: qsTr("File")
             }

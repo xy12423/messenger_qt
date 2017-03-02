@@ -341,6 +341,8 @@ void pre_session::read_session_id_body(int check_level)
 				std::string raw_data, data(sid_packet_buffer.get(), sid_packet_size);
 				crypto_prov.decrypt(data, raw_data, crypto_prov.GetPublicKey());
 				crypto_prov.sym_decrypt(raw_data, data, d);
+				if (data.size() != sizeof(session_id_type) + sizeof(rand_num_type) + hash_size)
+					throw(msgr_proto_error("Error:SID packet length mismatch"));
 
 				std::string hash_recv(data, data.size() - hash_size), hash_real;
 				crypto_prov.hash(data, hash_real, hash_size);

@@ -45,6 +45,15 @@ struct user_ext_type
     std::vector<std::pair<std::string, std::string>> file_list;
 };
 
+struct key_item
+{
+    key_item() {}
+    template <typename _Ty1, typename _Ty2>
+    key_item(_Ty1&& _key, _Ty2&& _ex) :key(std::forward<_Ty1>(_key)), ex(std::forward<_Ty2>(_ex)) {}
+
+    std::string key, ex;
+};
+
 class qt_srv_interface;
 
 class QtWindowInterface : public QObject
@@ -74,6 +83,7 @@ public:
     Q_INVOKABLE QUrl getPicturesPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); }
     Q_INVOKABLE QUrl getDownloadPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)); }
     Q_INVOKABLE QString urlToLocalStr(const QUrl& url) { return url.toLocalFile(); }
+    Q_INVOKABLE QUrl localStrToUrl(const QString& path) { return QUrl::fromLocalFile(path); }
 signals:
     void joined(int index, const QString& name);
     void left(int index);
@@ -82,6 +92,8 @@ signals:
 
     void enableFeature(int flag);
     void refreshFilelist(const QStringList& files);
+
+    void refreshKeylist(const QStringList& key, const QStringList& ex);
 
     void sendFileBlock(int id);
 public slots:
@@ -92,7 +104,14 @@ public slots:
     void sendFile(const QUrl& file_path);
 
     void reqFilelist();
-    void reqDownloadFile(int file_id);
+    void reqDownloadFile(int index);
+
+    void reqKeylist();
+    void importKey(const QUrl& key_path);
+    void exportKey(int index, const QUrl& key_path, const QString& file_name);
+    void modifyKey(int index, const QString& ex);
+    void trustKey();
+    void distrustKey(int index);
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
@@ -100,6 +119,7 @@ private:
     QString GenerateLogStr(user_ext_type& usr);
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);
+    void GenerateKeylist();
 
     iosrvThread threadNetwork, threadMisc;
     std::unique_ptr<crypto::server> crypto_srv;
@@ -111,6 +131,7 @@ private:
     std::vector<user_id_type> user_id_map;
 
     std::vector<std::string> file_id_map;
+    std::vector<key_item> key_list;
 
     std::unique_ptr<crypto::provider> cryp_helper;
 
@@ -152,22 +173,34 @@ public:
         crypto::provider& cryp_helper);
     ~qt_srv_interface();
 
-    virtual void on_data(user_id_type id, const std::string& data);
+    virtual void on_data(user_id_type id, const std::string& data) override;
 
-    virtual void on_join(user_id_type id, const std::string& key);
-    virtual void on_leave(user_id_type id);
+    virtual void on_join(user_id_type id, const std::string& key) override;
+    virtual void on_leave(user_id_type id) override;
 
-    virtual bool new_rand_port(port_type& port);
-    virtual void free_rand_port(port_type port) { ports.push_back(port); }
+    virtual bool new_rand_port(port_type& port) override;
+    virtual void free_rand_port(port_type port) override { ports.push_back(port); }
+
+    virtual bool new_key(const std::string& key) override { if (connectedKeys.count(key) > 0) return false; connectedKeys.emplace(key); return true; }
+    virtual void delete_key(const std::string& key) override { connectedKeys.erase(key); }
 
     template <typename... _Ty>
     void certify_key(_Ty&&... key) { certifiedKeys.emplace(std::forward<_Ty>(key)...); }
+    void decertify_key(const std::string& key) { if (key != get_public_key()) certifiedKeys.erase(key); }
+    const std::string& get_key_ex(const std::string& key) const { return certifiedKeys.at(key); }
+
+    void list_key(std::vector<key_item>& ret);
+    void import_key(std::istream& in);
+    void export_key(std::ostream& out, const std::string& key);
+    template <typename _Ty>
+    void edit_key(const std::string& key, _Ty&& ex) { certifiedKeys.at(key) = std::forward<_Ty>(ex); }
 
     void set_static_port(port_type port) { static_port = port; }
     void new_image_id(int& id) { id = image_id; image_id++; }
 
-    virtual void on_error(const char* err) { qWarning(QString::fromLocal8Bit(err).toUtf8()); }
+    virtual void on_error(const char* err) override { qWarning(QString::fromLocal8Bit(err).toUtf8()); }
 private:
+    std::unordered_set<std::string> connectedKeys;
     std::unordered_map<std::string, std::string> certifiedKeys;
     std::list<port_type> ports;
     int static_port = -1;

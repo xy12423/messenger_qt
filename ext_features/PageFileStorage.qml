@@ -1,8 +1,6 @@
-import QtQuick 2.7
+import QtQuick 2.8
 
 PageFileStorageForm {
-    selectedIndex: 0
-
     signal reqFinish()
 
     Connections {
@@ -15,7 +13,7 @@ PageFileStorageForm {
     }
 
     button_download.onClicked: {
-        if (selectedIndex != 0)
+        if (selectedIndex != -1)
             cppInterface.reqDownloadFile(selectedIndex)
         reqFinish()
     }
