@@ -10,9 +10,20 @@ enum plugin_flags {
     plugin_file_storage = 0x1,
 };
 
+struct key_item
+{
+    key_item() {}
+    template <typename _Ty1, typename _Ty2>
+    key_item(_Ty1&& _key, _Ty2&& _ex) :key(std::forward<_Ty1>(_key)), ex(std::forward<_Ty2>(_ex)) {}
+
+    std::string key, ex;
+};
+
 struct user_ext_type
 {
     QString addr;
+    std::string key, comment;
+    bool have_comment = false;
     int feature = 0;
     struct log_type
     {
@@ -43,15 +54,6 @@ struct user_ext_type
     int blockLast = 0;
 
     std::vector<std::pair<std::string, std::string>> file_list;
-};
-
-struct key_item
-{
-    key_item() {}
-    template <typename _Ty1, typename _Ty2>
-    key_item(_Ty1&& _key, _Ty2&& _ex) :key(std::forward<_Ty1>(_key)), ex(std::forward<_Ty2>(_ex)) {}
-
-    std::string key, ex;
 };
 
 class qt_srv_interface;
@@ -86,6 +88,7 @@ public:
     Q_INVOKABLE QUrl localStrToUrl(const QString& path) { return QUrl::fromLocalFile(path); }
 signals:
     void joined(int index, const QString& name);
+    void changeName(int index, const QString& name);
     void left(int index);
     void selectIndex(int index);
     void refreshChat(const QString& content);
@@ -120,6 +123,7 @@ private:
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);
     void GenerateKeylist();
+    void RefreshComments();
 
     iosrvThread threadNetwork, threadMisc;
     std::unique_ptr<crypto::server> crypto_srv;

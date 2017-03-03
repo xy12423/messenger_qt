@@ -157,15 +157,17 @@ void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std:
 
 void QtWindowInterface::Join(user_id_type id, const std::string& key)
 {
-    user_ext_type &ext = user_ext[id];
-    ext.addr = srv->get_session(id).get_address().c_str();
+    user_ext_type &usr = user_ext[id];
+    usr.addr = srv->get_session(id).get_address().c_str();
+    usr.key = key;
 
-    QString name = ext.addr;
+    QString name = usr.addr;
     try
     {
-        const std::string &comment = srv->get_key_ex(key);
+        usr.comment = srv->get_key_ex(key);
+        usr.have_comment = true;
         name.append('(');
-        name.append(comment.c_str());
+        name.append(QString::fromStdString(usr.comment));
         name.append(')');
     }
     catch (std::out_of_range&) {}
@@ -435,6 +437,7 @@ void QtWindowInterface::importKey(const QUrl& key_path)
             fin.close();
         }
         GenerateKeylist();
+        RefreshComments();
     }
     catch (std::exception& ex)
     {
@@ -469,6 +472,7 @@ void QtWindowInterface::modifyKey(int index, const QString& ex)
         key_item &key = key_list.at(index);
         key.ex = ex.toStdString();
         srv->edit_key(key.key, key.ex);
+        RefreshComments();
     }
     catch (std::exception& ex)
     {
@@ -485,6 +489,7 @@ void QtWindowInterface::trustKey()
             const std::string &key = srv->get_session(user_id_map.at(selected)).get_key();
             srv->certify_key(key, "");
             GenerateKeylist();
+            RefreshComments();
         }
     }
     catch (std::exception& ex)
@@ -500,6 +505,7 @@ void QtWindowInterface::distrustKey(int index)
         std::string &key = key_list.at(index).key;
         srv->decertify_key(key);
         GenerateKeylist();
+        RefreshComments();
     }
     catch (std::exception& ex)
     {
@@ -641,4 +647,33 @@ void QtWindowInterface::GenerateKeylist()
         list_ex.append(QString::fromStdString(itr->ex));
     }
     emit refreshKeylist(list_key, list_ex);
+}
+
+void QtWindowInterface::RefreshComments()
+{
+    for (size_t i = 0; i < user_id_map.size(); i++)
+    {
+        user_ext_type &usr = user_ext.at(user_id_map.at(i));
+        try
+        {
+            const std::string &comment = srv->get_key_ex(usr.key);
+            if (!usr.have_comment || usr.comment != comment)    //Add or Modify
+            {
+                usr.comment = comment;
+                QString new_name = usr.addr;
+                new_name.append('(');
+                new_name.append(QString::fromStdString(comment));
+                new_name.append(')');
+                emit changeName(i, new_name);
+            }
+            usr.have_comment = true;
+        }
+        catch (std::out_of_range&)
+        {
+            if (usr.have_comment)   //Remove
+                emit changeName(i, usr.addr);
+            usr.comment.clear();
+            usr.have_comment = false;
+        }
+    }
 }

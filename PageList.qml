@@ -13,6 +13,13 @@ PageListForm {
 
     Connections {
         target: cppInterface;
+        onChangeName: {
+            listModel_users.setProperty(index, "name", name)
+        }
+    }
+
+    Connections {
+        target: cppInterface;
         onSelectIndex: {
             listView_users.currentIndex = index
         }
