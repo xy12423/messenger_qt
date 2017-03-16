@@ -199,4 +199,25 @@ ApplicationWindow {
             }
         }
     }
+
+    Timer {
+        id: timer_close
+        interval: 320
+    }
+
+    onClosing: {
+        if (Qt.platform.os == "android")
+        {
+            if (stack_view.depth > 1)
+            {
+                close.accepted = false;
+                stack_view.pop();
+            }
+            else if (!timer_close.running)
+            {
+                close.accepted = false;
+                timer_close.start()
+            }
+        }
+    }
 }

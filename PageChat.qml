@@ -13,6 +13,11 @@ PageChatForm {
         }
     }
 
+    onTextEnterWatcherChanged: {
+        cppInterface.sendMsg(text_input.text)
+        text_input.text = ""
+    }
+
     button_send.onClicked: {
         cppInterface.sendMsg(text_input.text)
         text_input.text = ""

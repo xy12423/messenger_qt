@@ -10,6 +10,7 @@ Item {
     property alias button_send: button_send
     property alias button_file: button_file
     property alias button_image: button_image
+    property int textEnterWatcher: 1
 
     ColumnLayout {
         anchors.fill: parent
@@ -57,6 +58,9 @@ Item {
                 leftPadding: 5
                 topPadding: 5
                 verticalAlignment: TextField.AlignVCenter
+
+                Keys.onReturnPressed: textEnterWatcher = textEnterWatcher - 1
+                Keys.onEnterPressed: textEnterWatcher = textEnterWatcher - 1
             }
         }
 

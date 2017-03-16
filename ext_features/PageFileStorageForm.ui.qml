@@ -44,7 +44,6 @@ Item {
                 }
             }
             highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
-            focus: true
         }
 
         RowLayout {
