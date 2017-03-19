@@ -25,8 +25,7 @@ bool compare_little_endian(const char* data, _Ty num)
 
 void proto_kit::do_enc(crypto::task& task)
 {
-	std::string &data = task.data;
-	std::string &write_raw = data, write_data;
+	std::string &write_raw = task.data, write_data;
 	rand_num_type rand_num = get_rand_num_send();
 	write_raw.reserve(sizeof(session_id_type) + sizeof(rand_num_type) + write_raw.size() + hash_size);
 	write_raw.append(reinterpret_cast<char*>(&session_id), sizeof(session_id_type));
@@ -798,6 +797,8 @@ void session::read_header(const std::shared_ptr<read_end_watcher>& watcher)
 			const char *data = read_buffer.get(), *data_end = read_buffer.get() + sizeof(data_size_type);
 			for (int i = 0; data < data_end; data++, i += 8)
 				size_recv |= static_cast<data_size_type>(static_cast<uint8_t>(*data)) << i;
+			if (size_recv > read_max_size)
+				throw(std::runtime_error("Packet is too large"));
 			read_data(size_recv, std::make_shared<std::string>(), watcher);
 		}
 		catch (std::exception &ex)

@@ -97,19 +97,24 @@ QtWindowInterface::~QtWindowInterface()
     crypto_srv.reset();
 }
 
-void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg)
+void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg, const std::string& from)
 {
     user_ext_type &usr = user_ext.at(id);
-    QString msg_q(msg.data());
-    usr.log.emplace_back(true, msg_q);
+    if (!from.empty())
+        usr.log.emplace_back(from.c_str(), msg);
+    else
+        usr.log.emplace_back(usr.addr, msg);
     if (selected != -1 && id == user_id_map.at(selected))
         emit refreshChat(GenerateLogStr(usr));
 }
 
-void QtWindowInterface::RecvImg(user_id_type id, const QString& path)
+void QtWindowInterface::RecvImg(user_id_type id, const QString& path, const std::string& from)
 {
     user_ext_type &usr = user_ext.at(id);
-    usr.log.emplace_back(true, path, true);
+    if (!from.empty())
+        usr.log.emplace_back(from.c_str(), path, true);
+    else
+        usr.log.emplace_back(usr.addr, path, true);
     if (selected != -1 && id == user_id_map.at(selected))
         emit refreshChat(GenerateLogStr(usr));
 }
@@ -148,7 +153,7 @@ void QtWindowInterface::RecvFeature(user_id_type id, int flag)
 void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>& list)
 {
     user_ext_type &usr = user_ext.at(id);
-    if ((usr.feature & plugin_file_storage) == 0)
+    if ((usr.feature & feature_file_storage) == 0)
         return;
     usr.file_list = std::move(list);
     if (selected != -1 && id == user_id_map.at(selected))
@@ -246,7 +251,7 @@ void QtWindowInterface::sendMsg(const QString& msg)
 
             user_id_type uID = user_id_map.at(selected);
             srv->send_data(uID, std::move(msg_utf8), msgr_proto::session::priority_msg);
-            user_ext.at(uID).log.emplace_back(false, msg);
+            user_ext.at(uID).log.emplace_back("Me", msg);
             emit refreshChat(GenerateLogStr(user_ext.at(uID)));
         }
     }
@@ -307,7 +312,7 @@ void QtWindowInterface::sendImg(const QUrl& url)
             data[4] = static_cast<uint8_t>(file_size >> 24);
 
             srv->send_data(uID, std::move(data), msgr_proto::session::priority_msg);
-            user_ext.at(uID).log.emplace_back(false, new_path, true);
+            user_ext.at(uID).log.emplace_back("Me", new_path, true);
             emit refreshChat(GenerateLogStr(user_ext.at(uID)));
         }
     }
@@ -374,7 +379,7 @@ void QtWindowInterface::reqFilelist()
     {
         user_id_type uID = user_id_map.at(selected);
         user_ext_type &usr = user_ext.at(uID);
-        if ((usr.feature & plugin_file_storage) == 0)
+        if ((usr.feature & feature_file_storage) == 0)
             return;
         emit refreshFilelist(GenerateFilelist(usr));
 
@@ -396,7 +401,7 @@ void QtWindowInterface::reqDownloadFile(int index)
     {
         user_id_type uID = user_id_map.at(selected);
         user_ext_type &usr = user_ext.at(uID);
-        if ((usr.feature & plugin_file_storage) == 0)
+        if ((usr.feature & feature_file_storage) == 0)
             return;
 
         std::string data;
@@ -602,10 +607,7 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
     for (auto itr = log.begin(), itr_end = log.end(); itr != itr_end; itr++)
     {
         ret.append("<b>");
-        if (itr->is_recv)
-            ret.append(usr.addr);
-        else
-            ret.append("Me");
+        ret.append(itr->from);
         ret.append("</b><pre>\n</pre>");
         if (itr->is_image)
         {
@@ -651,7 +653,7 @@ void QtWindowInterface::GenerateKeylist()
 
 void QtWindowInterface::RefreshComments()
 {
-    for (size_t i = 0; i < user_id_map.size(); i++)
+    for (int i = 0; i < static_cast<int>(user_id_map.size()); i++)
     {
         user_ext_type &usr = user_ext.at(user_id_map.at(i));
         try

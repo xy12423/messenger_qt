@@ -53,8 +53,8 @@ namespace msgr_proto
 
 		friend class pre_session;
 	private:
-		inline rand_num_type get_rand_num_send() { if (rand_num_send == std::numeric_limits<rand_num_type>::max()) rand_num_send = 0; else rand_num_send++; return rand_num_send; }
-		inline rand_num_type get_rand_num_recv() { if (rand_num_recv == std::numeric_limits<rand_num_type>::max()) rand_num_recv = 0; else rand_num_recv++; return rand_num_recv; }
+		inline rand_num_type get_rand_num_send() { if (rand_num_send == std::numeric_limits<rand_num_type>::max()) rand_num_send = 0; else rand_num_send++; return boost::endian::native_to_little(rand_num_send); }
+		inline rand_num_type get_rand_num_recv() { if (rand_num_recv == std::numeric_limits<rand_num_type>::max()) rand_num_recv = 0; else rand_num_recv++; return boost::endian::native_to_little(rand_num_recv); }
 
 		crypto::provider& provider;
 		crypto::provider::sym_encryptor e;
@@ -245,7 +245,7 @@ namespace msgr_proto
 	class session : public session_base
 	{
 	private:
-		static constexpr size_t read_buffer_size = 0x4000;
+		static constexpr size_t read_buffer_size = 0x4000, read_max_size = 0x200000;
 
 		struct write_task {
 			write_task() {}
@@ -387,8 +387,8 @@ namespace msgr_proto
 		session_base& get_session(user_id_type id) const { return *sessions.at(id); }
 		const std::string& get_public_key() const { return e0str; }
 
-        virtual bool new_key(const std::string&) { return true; }
-        virtual void delete_key(const std::string&) {}
+		virtual bool new_key(const std::string&) { return true; }
+		virtual void delete_key(const std::string&) {}
 
 		void on_exception(const std::string& ex) noexcept { misc_iosrv.post([this, ex]() { on_error(ex.c_str()); }); }
 		void on_exception(std::string&& ex) noexcept { misc_iosrv.post([this, ex]() { on_error(ex.c_str()); }); }

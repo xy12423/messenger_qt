@@ -6,8 +6,11 @@
 #include "session.h"
 #include "threads.h"
 
-enum plugin_flags {
-    plugin_file_storage = 0x1,
+enum server_flags {
+    feature_file_storage = 0x1,
+};
+enum client_flags {
+    feature_message_from = 0x4,
 };
 
 struct key_item
@@ -27,11 +30,13 @@ struct user_ext_type
     int feature = 0;
     struct log_type
     {
-        log_type(bool _is_recv, const char* _msg) :is_recv(_is_recv), is_image(false), msg(_msg) {}
-        log_type(bool _is_recv, const std::string& _msg) :is_recv(_is_recv), is_image(false), msg(_msg.data()) {}
-        log_type(bool _is_recv, const QString& _str, bool _is_image = false) :is_recv(_is_recv), is_image(_is_image) { if (is_image) image = _str; else msg = _str; }
+        log_type(const QString &_from, const char* _msg) :from(_from), is_image(false), msg(_msg) {}
+        log_type(const QString &_from, const std::string& _msg) :from(_from), is_image(false), msg(_msg.data()) {}
+        log_type(const QString &_from, const QString& _str) :from(_from), is_image(false), msg(_str) {}
+        log_type(const QString &_from, const QString& _str, bool) :from(_from), is_image(true), image(_str) {}
 
-        bool is_recv, is_image;
+        QString from;
+        bool is_image;
         QString msg;
         QString image;
     };
@@ -70,8 +75,8 @@ public:
     QtWindowInterface();
     ~QtWindowInterface();
 
-    void RecvMsg(user_id_type id, const std::string& msg);
-    void RecvImg(user_id_type id, const QString& path);
+    void RecvMsg(user_id_type id, const std::string& msg, const std::string& from);
+    void RecvImg(user_id_type id, const QString& path, const std::string& from);
     void RecvFileH(user_id_type id, const QString& file_name, size_t block_count);
     void RecvFileB(user_id_type id, const char* data, size_t size);
     void RecvFeature(user_id_type id, int flag);
@@ -147,7 +152,7 @@ enum pac_type {
     PAC_TYPE_FILE_H,
     PAC_TYPE_FILE_B,
     PAC_TYPE_IMAGE,
-    PAC_TYPE_PLUGIN_FLAG,
+    PAC_TYPE_FEATURE_FLAG,
     PAC_TYPE_PLUGIN_DATA,
 };
 
@@ -204,6 +209,8 @@ public:
 
     virtual void on_error(const char* err) override { qWarning(QString::fromLocal8Bit(err).toUtf8()); }
 private:
+    const std::string empty_string;
+
     std::unordered_set<std::string> connectedKeys;
     std::unordered_map<std::string, std::string> certifiedKeys;
     std::list<port_type> ports;

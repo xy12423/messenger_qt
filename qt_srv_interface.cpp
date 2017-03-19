@@ -156,7 +156,19 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 std::string msg_utf8;
                 data.read(msg_utf8, msg_size);
 
-                window.RecvMsg(id, msg_utf8);
+                if (data.check_bool(sizeof(data_size_type)))
+                {
+                    data_size_type from_size;
+                    data.read(from_size);
+                    std::string from;
+                    data.read(from, from_size);
+                    window.RecvMsg(id, msg_utf8, from);
+                }
+                else
+                {
+                    window.RecvMsg(id, msg_utf8, empty_string);
+                }
+
                 break;
             }
             case PAC_TYPE_FILE_H:
@@ -222,10 +234,23 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 fout.close();
                 data.skip(image_size);
 
-                window.RecvImg(id, imagefile_path);
+                if (data.check_bool(sizeof(data_size_type)))
+                {
+                    data_size_type from_size;
+                    data.read(from_size);
+                    std::string from;
+                    data.read(from, from_size);
+                    window.RecvImg(id, imagefile_path, from);
+                }
+                else
+                {
+                    window.RecvImg(id, imagefile_path, empty_string);
+                }
+
+
                 break;
             }
-            case PAC_TYPE_PLUGIN_FLAG:
+            case PAC_TYPE_FEATURE_FLAG:
             {
                 uint32_t flag;
                 data.read(flag);
@@ -285,6 +310,16 @@ void qt_srv_interface::on_join(user_id_type id, const std::string& key)
     IMG_TMP_PATH.mkpath(QString::number(id));
 
     window.Join(id, key);
+
+    uint32_t flags = feature_message_from;
+    std::string flags_buf;
+    flags_buf.push_back(PAC_TYPE_FEATURE_FLAG);
+    for (int i = 0; i < static_cast<int>(sizeof(uint32_t)); i++)
+    {
+        flags_buf.push_back(static_cast<char>(flags & 0xFF));
+        flags >>= 8;
+    }
+    send_data(id, std::move(flags_buf), msgr_proto::session::priority_sys);
 }
 
 void qt_srv_interface::on_leave(user_id_type id)
