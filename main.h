@@ -120,6 +120,8 @@ public slots:
     void modifyKey(int index, const QString& ex);
     void trustKey();
     void distrustKey(int index);
+
+    void windowWidthChanged(int newWidth);
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
@@ -145,6 +147,8 @@ private:
     std::unique_ptr<crypto::provider> cryp_helper;
 
     std::unique_ptr<char[]> file_block;
+
+    int window_width;
 };
 
 enum pac_type {

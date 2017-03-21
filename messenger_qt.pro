@@ -9,7 +9,8 @@ SOURCES += main.cpp \
     qt_srv_interface.cpp \
     qtwindowinterface.cpp
 
-RESOURCES += qml.qrc
+RESOURCES += qml.qrc \
+    lang.qrc
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -47,6 +48,7 @@ DISTFILES += \
     android/res/values/libs.xml \
     android/build.gradle \
     android/gradle/wrapper/gradle-wrapper.properties \
-    android/gradlew.bat
+    android/gradlew.bat \
+    android/ant.properties
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android

@@ -16,6 +16,10 @@ ApplicationWindow {
         anchors.fill: parent
     }
 
+    onWidthChanged: {
+        cppInterface.windowWidthChanged(width)
+    }
+
     Component {
         id: component_page_join
 
@@ -34,12 +38,8 @@ ApplicationWindow {
         id: component_page_img
 
         Item {
-            PageFile {
+            PageImg {
                 anchors.fill: parent
-
-                fileIcon: "qrc:/images/image.png"
-                startFolder: cppInterface.getPicturesPath()
-                filter: ["*.jpg", "*.png", "*.gif", "*.bmp"]
 
                 onReqFinishOK: {
                     cppInterface.sendImg(path)
@@ -219,5 +219,9 @@ ApplicationWindow {
                 timer_close.start()
             }
         }
+    }
+
+    Component.onCompleted: {
+        cppInterface.windowWidthChanged(width)
     }
 }

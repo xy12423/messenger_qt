@@ -14,7 +14,6 @@ Item {
     property alias text_path: text_path
     property int selectedIndex: -1
     property url folderIcon: "qrc:/images/folder.png"
-    property url fileIcon: "qrc:/images/file.png"
 
     ColumnLayout {
         anchors.fill: parent
@@ -71,17 +70,17 @@ Item {
 
             delegate: Item {
                 width: parent.width
-                height: 20
+                height: 40
                 RowLayout
                 {
                     anchors.fill: parent
                     Image {
                         id: image_listViewItem
-                        Layout.preferredWidth: 20
-                        Layout.preferredHeight: 20
+                        Layout.preferredWidth: 40
+                        Layout.preferredHeight: 40
                         Layout.fillHeight: true
 
-                        source: fileIsDir ? folderIcon : fileIcon
+                        source: fileIsDir ? folderIcon : fileURL
                     }
                     Text {
                         Layout.fillWidth: true

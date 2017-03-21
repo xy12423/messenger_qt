@@ -8,9 +8,9 @@ PageExtForm {
         target: cppInterface
         onEnableFeature: {
             listModel_exts.clear()
-            listModel_exts.append({ name: "Key management", feature_id: 2 })
+            listModel_exts.append({ name: qsTr("Key management"), feature_id: 2 })
             if (flag % 2 == 1)
-                listModel_exts.append({ name: "File storage", feature_id: 1 })
+                listModel_exts.append({ name: qsTr("File storage"), feature_id: 1 })
         }
     }
 
@@ -22,6 +22,6 @@ PageExtForm {
     }
 
     Component.onCompleted: {
-        listModel_exts.append({ name: "Key management", feature_id: 2 })
+        listModel_exts.append({ name: qsTr("Key management"), feature_id: 2 })
     }
 }

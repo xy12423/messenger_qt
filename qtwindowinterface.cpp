@@ -518,6 +518,23 @@ void QtWindowInterface::distrustKey(int index)
     }
 }
 
+void QtWindowInterface::windowWidthChanged(int newWidth)
+{
+    try
+    {
+        if (window_width != newWidth)
+        {
+            window_width = newWidth;
+            if (selected != -1)
+                emit refreshChat(GenerateLogStr(user_ext.at(user_id_map.at(selected))));
+        }
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
 void QtWindowInterface::OnSelectChanged(int index)
 {
     try
@@ -613,11 +630,12 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
         {
             ret.append("<img src=\"file:/");
             ret.append(itr->image);
-            ret.append("\" />");
+            ret.append("\" width=");
+            ret.append(QString::number(window_width));
+            ret.append("/>");
         }
         else
         {
-            ret.append("<pre>");
             for (auto itr_c = itr->msg.begin(), itr_c_end = itr->msg.end(); itr_c != itr_c_end; itr_c++)
             {
                 if (*itr_c == '<')
@@ -626,10 +644,25 @@ QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
                     ret.append("&gt;");
                 else if (*itr_c == '&')
                     ret.append("&amp;");
+                else if (*itr_c == ' ')
+                    ret.append("&nbsp;");
+                else if (*itr_c == '"')
+                    ret.append("&quot;");
+                else if (*itr_c == '\'')
+                    ret.append("&apos;");
+                else if (*itr_c == '\n')
+                    ret.append("<pre>\n</pre>");
+                else if (*itr_c == '\t')
+                    ret.append("&#09;");
+                else if (itr_c->isSpace())
+                {
+                    ret.append("&#");
+                    ret.append(QString::number(itr_c->unicode()));
+                    ret.push_back(';');
+                }
                 else
                     ret.push_back(*itr_c);
             }
-            ret.append("</pre>");
         }
         ret.append("<pre>\n</pre>");
     }
