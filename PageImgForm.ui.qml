@@ -79,6 +79,7 @@ Item {
                         Layout.preferredWidth: 40
                         Layout.preferredHeight: 40
                         Layout.fillHeight: true
+                        fillMode: Image.PreserveAspectFit
 
                         source: fileIsDir ? folderIcon : fileURL
                     }

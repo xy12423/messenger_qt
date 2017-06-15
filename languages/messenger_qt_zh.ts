@@ -62,12 +62,12 @@
 <context>
     <name>PageImgForm.ui</name>
     <message>
-        <location filename="../PageImgForm.ui.qml" line="115"/>
+        <location filename="../PageImgForm.ui.qml" line="116"/>
         <source>OK</source>
         <translation>确认</translation>
     </message>
     <message>
-        <location filename="../PageImgForm.ui.qml" line="123"/>
+        <location filename="../PageImgForm.ui.qml" line="124"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>

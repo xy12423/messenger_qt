@@ -27,9 +27,17 @@ HEADERS += crypto.h \
 
 win32 {
     QMAKE_CXXFLAGS += -D_WIN32_WINNT=0x0501
-    LIBS += -LC:/cpplibs/lib64 -LC:/boost/lib64
+
     INCLUDEPATH += C:/cpplibs/include
     INCLUDEPATH += C:/boost
+
+    CONFIG(release, debug|release) {
+        LIBS += -LC:/cpplibs/lib64 -LC:/boost/lib64
+    }
+
+    CONFIG(debug, debug|release) {
+        LIBS += -LC:/cpplibs/lib64d -LC:/boost/lib64
+    }
 }
 
 android {
@@ -48,7 +56,6 @@ DISTFILES += \
     android/res/values/libs.xml \
     android/build.gradle \
     android/gradle/wrapper/gradle-wrapper.properties \
-    android/gradlew.bat \
-    android/ant.properties
+    android/gradlew.bat
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android

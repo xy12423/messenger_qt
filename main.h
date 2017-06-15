@@ -28,19 +28,19 @@ struct user_ext_type
     std::string key, comment;
     bool have_comment = false;
     int feature = 0;
-    struct log_type
+    struct log_item
     {
-        log_type(const QString &_from, const char* _msg) :from(_from), is_image(false), msg(_msg) {}
-        log_type(const QString &_from, const std::string& _msg) :from(_from), is_image(false), msg(_msg.data()) {}
-        log_type(const QString &_from, const QString& _str) :from(_from), is_image(false), msg(_str) {}
-        log_type(const QString &_from, const QString& _str, bool) :from(_from), is_image(true), image(_str) {}
+        log_item(const QString &_from, const char* _msg) :from(_from), is_image(false), msg(_msg) {}
+        log_item(const QString &_from, const std::string& _msg) :from(_from), is_image(false), msg(_msg.data()) {}
+        log_item(const QString &_from, const QString& _str) :from(_from), is_image(false), msg(_str) {}
+        log_item(const QString &_from, const QString& _str, bool) :from(_from), is_image(true), image(_str) {}
 
         QString from;
         bool is_image;
         QString msg;
         QString image;
     };
-    std::list<log_type> log;
+    std::list<log_item> log;
 
     struct send_task
     {
