@@ -5,7 +5,8 @@ import QtQuick.Layouts 1.3
 Item {
     width: 320
     height: 480
-    property alias text_content: text_content
+    property alias listView_chat: listView_chat
+    property alias listModel_chat: listModel_chat
     property alias text_input: text_input
     property alias button_send: button_send
     property alias button_file: button_file
@@ -16,35 +17,36 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        Item
-        {
+        ListView {
+            id: listView_chat
             width: parent.width
-            height: 405
+            Layout.preferredHeight: 405
             Layout.fillHeight: true
             Layout.fillWidth: true
+            topMargin: 5
+            bottomMargin: 5
 
-            Flickable {
-                anchors.fill: parent
-                flickableDirection: Flickable.VerticalFlick
+            clip: true
+            orientation: ListView.Vertical
+            spacing: 5
 
-                TextArea.flickable: TextArea {
-                    id: text_content
-
-                    textFormat: Text.RichText
-                    font.pixelSize: 15
-                    textMargin: 2
-                    wrapMode: TextArea.Wrap
-                    readOnly: true
-                }
-
-                ScrollBar.vertical: ScrollBar {}
-                ScrollBar.horizontal: ScrollBar {}
+            model: ListModel {
+                id: listModel_chat
             }
+
+            delegate: Item {
+                height: loader_chat.height
+                Loader {
+                    id: loader_chat
+                    source: compType
+                }
+            }
+            highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
         }
 
         Rectangle {
             width: parent.width
-            height: 35
+            Layout.preferredHeight: 35
             Layout.fillHeight: true
             Layout.fillWidth: true
 
@@ -66,7 +68,7 @@ Item {
 
         RowLayout {
             width: parent.width
-            height: 40
+            Layout.preferredHeight: 40
             Layout.fillHeight: true
             Layout.fillWidth: true
 

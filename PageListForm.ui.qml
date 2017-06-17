@@ -17,10 +17,13 @@ Item {
         ListView {
             id: listView_users
             width: parent.width
-            height: 440
-            orientation: ListView.Vertical
+            Layout.preferredHeight: 440
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            clip: true
+            orientation: ListView.Vertical
+            currentIndex: cppInterface.index
 
             model: ListModel {
                 id: listModel_users
@@ -47,7 +50,7 @@ Item {
 
         RowLayout {
             width: parent.width
-            height: 40
+            Layout.preferredHeight: 40
             Layout.fillHeight: true
             Layout.fillWidth: true
 

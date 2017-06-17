@@ -24,10 +24,13 @@ struct key_item
 
 struct user_ext_type
 {
+    //User info
     QString addr;
     std::string key, comment;
     bool have_comment = false;
     int feature = 0;
+
+    //Logs / Chat items
     struct log_item
     {
         log_item(const QString &_from, const char* _msg) :from(_from), is_image(false), msg(_msg) {}
@@ -42,6 +45,7 @@ struct user_ext_type
     };
     std::list<log_item> log;
 
+    //File transfer info
     struct send_task
     {
         send_task(std::string&& _header, const QString& path, data_size_type _blockCountAll)
@@ -58,6 +62,7 @@ struct user_ext_type
     QString recvFile;
     int blockLast = 0;
 
+    //Ext info
     std::vector<std::pair<std::string, std::string>> file_list;
 };
 
@@ -66,7 +71,8 @@ class qt_srv_interface;
 class QtWindowInterface : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int index READ get_selected WRITE select)
+    Q_PROPERTY(int index READ get_selected WRITE select NOTIFY selectIndex)
+    Q_PROPERTY(int windowWidth READ get_windowWidth WRITE set_windowWidth NOTIFY windowWidthChanged)
 
 private:
     static constexpr int FileBlockLen = 0x80000;
@@ -85,18 +91,26 @@ public:
     void Leave(user_id_type id);
 
     int get_selected() { return selected; }
-    void select(int index) { selected = index; emit selectIndex(index); }
+    void select(int index) { if (selected != index) { selected = index; emit selectIndex(index); } }
+    int get_windowWidth() { return window_width; }
+    void set_windowWidth(int width) { if (window_width != width) { window_width = width; emit windowWidthChanged(width); } }
 
     Q_INVOKABLE QUrl getPicturesPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)); }
     Q_INVOKABLE QUrl getDownloadPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)); }
     Q_INVOKABLE QString urlToLocalStr(const QUrl& url) { return url.toLocalFile(); }
     Q_INVOKABLE QUrl localStrToUrl(const QString& path) { return QUrl::fromLocalFile(path); }
+    Q_INVOKABLE void printDebug(const QString& msg) { qDebug(msg.toUtf8()); }
 signals:
     void joined(int index, const QString& name);
     void changeName(int index, const QString& name);
     void left(int index);
     void selectIndex(int index);
-    void refreshChat(const QString& content);
+
+    void chatClear();
+    void chatText(int id, const QString& from, const QString& message);
+    void chatImage(int id, const QString& from, const QString& imgPath);
+    void chatFile(int id, const QString& from, const QString& filename);
+    void notifyFile(int id, int progress);
 
     void enableFeature(int flag);
     void refreshFilelist(const QStringList& files);
@@ -104,12 +118,14 @@ signals:
     void refreshKeylist(const QStringList& key, const QStringList& ex);
 
     void sendFileBlock(int id);
+
+    void windowWidthChanged(int newWidth);
 public slots:
     void connectTo(const QString& addr, const QString& port);
     void disconnect();
     void sendMsg(const QString& msg);
-    void sendImg(const QUrl& img_path);
-    void sendFile(const QUrl& file_path);
+    void sendImg(const QUrl& img_url);
+    void sendFile(const QUrl& file_url);
 
     void reqFilelist();
     void reqDownloadFile(int index);
@@ -120,13 +136,10 @@ public slots:
     void modifyKey(int index, const QString& ex);
     void trustKey();
     void distrustKey(int index);
-
-    void windowWidthChanged(int newWidth);
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
 private:
-    QString GenerateLogStr(user_ext_type& usr);
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);
     void GenerateKeylist();

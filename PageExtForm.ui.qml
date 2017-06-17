@@ -13,6 +13,7 @@ Item {
     ListView {
         id: listView_exts
         anchors.fill: parent
+        clip: true
         model: ListModel {
             id: listModel_exts
         }

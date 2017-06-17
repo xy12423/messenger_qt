@@ -17,7 +17,7 @@ ApplicationWindow {
     }
 
     onWidthChanged: {
-        cppInterface.windowWidthChanged(width)
+        cppInterface.windowWidth = width
     }
 
     Component {
@@ -150,52 +150,65 @@ ApplicationWindow {
     Page {
         id: main_page
 
-        SwipeView {
-            id: swipeView
+        ColumnLayout
+        {
             anchors.fill: parent
-            currentIndex: tabBar.currentIndex
 
-            PageList {
-                onConnectReq: {
-                    stack_view.push(component_page_join)
+            TabBar {
+                id: tabBar
+                width: parent.width
+                Layout.preferredHeight: 35
+                Layout.maximumHeight: 35
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                currentIndex: swipeView.currentIndex
+                TabButton {
+                    text: qsTr("User list")
+                }
+                TabButton {
+                    text: qsTr("Chat")
+                }
+                TabButton {
+                    text: qsTr("Extra")
                 }
             }
 
-            PageChat {
-                onImageReq: {
-                    if (cppInterface.index != -1)
-                        stack_view.push(component_page_img)
+            SwipeView {
+                id: swipeView
+                width: parent.width
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                currentIndex: tabBar.currentIndex
+                focus: true
+
+                PageList {
+                    onConnectReq: {
+                        stack_view.push(component_page_join)
+                    }
                 }
 
-                onFileReq: {
-                    if (cppInterface.index != -1)
-                        stack_view.push(component_page_file)
-                }
-            }
+                PageChat {
+                    onImageReq: {
+                        if (cppInterface.index != -1)
+                            stack_view.push(component_page_img)
+                    }
 
-            PageExt {
-                onSelectKeyMan: {
-                    stack_view.push(component_page_keyman)
+                    onFileReq: {
+                        if (cppInterface.index != -1)
+                            stack_view.push(component_page_file)
+                    }
                 }
 
-                onSelectFileStorage: {
-                    if (cppInterface.index != -1)
-                        stack_view.push(component_page_fstorage)
-                }
-            }
-        }
+                PageExt {
+                    onSelectKeyMan: {
+                        stack_view.push(component_page_keyman)
+                    }
 
-        header: TabBar {
-            id: tabBar
-            currentIndex: swipeView.currentIndex
-            TabButton {
-                text: qsTr("User list")
-            }
-            TabButton {
-                text: qsTr("Chat")
-            }
-            TabButton {
-                text: qsTr("Extra")
+                    onSelectFileStorage: {
+                        if (cppInterface.index != -1)
+                            stack_view.push(component_page_fstorage)
+                    }
+                }
             }
         }
     }
@@ -222,6 +235,6 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
-        cppInterface.windowWidthChanged(width)
+        cppInterface.windowWidth = width
     }
 }

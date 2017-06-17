@@ -19,13 +19,6 @@ PageListForm {
     }
 
     Connections {
-        target: cppInterface;
-        onSelectIndex: {
-            listView_users.currentIndex = index
-        }
-    }
-
-    Connections {
         target: cppInterface
         onLeft: {
             listModel_users.remove(index)

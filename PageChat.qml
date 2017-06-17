@@ -7,9 +7,34 @@ PageChatForm {
 
     Connections {
         target: cppInterface
-        onRefreshChat: {
-            text_content.clear()
-            text_content.append(content)
+        onChatClear: {
+            listModel_chat.clear()
+        }
+    }
+
+    Connections {
+        target: cppInterface
+        onChatText: {
+            var scrollDown = listView_chat.atYEnd
+            listModel_chat.append({ "compType": "ItemChatText.qml", "from": from, "content": message })
+            if (scrollDown)
+            {
+                listView_chat.positionViewAtEnd()
+                listView_chat.currentIndex = listView_chat.count - 1
+            }
+        }
+    }
+
+    Connections {
+        target: cppInterface
+        onChatImage: {
+            var scrollDown = listView_chat.atYEnd
+            listModel_chat.append({ "compType": "ItemChatImage.qml", "from": from, "content": imgPath })
+            if (scrollDown)
+            {
+                listView_chat.positionViewAtEnd()
+                listView_chat.currentIndex = listView_chat.count - 1
+            }
         }
     }
 

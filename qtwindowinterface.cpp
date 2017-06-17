@@ -100,23 +100,37 @@ QtWindowInterface::~QtWindowInterface()
 void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg, const std::string& from)
 {
     user_ext_type &usr = user_ext.at(id);
-    if (!from.empty())
+    int msgID = usr.log.size();
+    bool has_from = !from.empty();
+    if (has_from)
         usr.log.emplace_back(from.c_str(), msg);
     else
         usr.log.emplace_back(usr.addr, msg);
     if (selected != -1 && id == user_id_map.at(selected))
-        emit refreshChat(GenerateLogStr(usr));
+    {
+        if (has_from)
+            emit chatText(msgID, QString::fromUtf8(from.c_str()), QString::fromUtf8(msg.c_str()));
+        else
+            emit chatText(msgID, usr.addr, QString::fromUtf8(msg.c_str()));
+    }
 }
 
 void QtWindowInterface::RecvImg(user_id_type id, const QString& path, const std::string& from)
 {
     user_ext_type &usr = user_ext.at(id);
+    int msgID = usr.log.size();
+    bool has_from = !from.empty();
     if (!from.empty())
         usr.log.emplace_back(from.c_str(), path, true);
     else
         usr.log.emplace_back(usr.addr, path, true);
     if (selected != -1 && id == user_id_map.at(selected))
-        emit refreshChat(GenerateLogStr(usr));
+    {
+        if (has_from)
+            emit chatImage(msgID, QString::fromUtf8(from.c_str()), path);
+        else
+            emit chatImage(msgID, usr.addr, path);
+    }
 }
 
 void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_name, size_t block_count)
@@ -250,9 +264,11 @@ void QtWindowInterface::sendMsg(const QString& msg)
             msg_utf8.append(msg_buf.data());
 
             user_id_type uID = user_id_map.at(selected);
+            user_ext_type &usr = user_ext.at(uID);
+            int msgID = usr.log.size();
             srv->send_data(uID, std::move(msg_utf8), msgr_proto::session::priority_msg);
-            user_ext.at(uID).log.emplace_back("Me", msg);
-            emit refreshChat(GenerateLogStr(user_ext.at(uID)));
+            usr.log.emplace_back("Me", msg);
+            emit chatText(msgID, QString("Me"), msg);
         }
     }
     catch (std::exception& ex)
@@ -311,9 +327,11 @@ void QtWindowInterface::sendImg(const QUrl& url)
             data[3] = static_cast<uint8_t>(file_size >> 16);
             data[4] = static_cast<uint8_t>(file_size >> 24);
 
+            user_ext_type &usr = user_ext.at(uID);
+            int msgID = usr.log.size();
             srv->send_data(uID, std::move(data), msgr_proto::session::priority_msg);
-            user_ext.at(uID).log.emplace_back("Me", new_path, true);
-            emit refreshChat(GenerateLogStr(user_ext.at(uID)));
+            usr.log.emplace_back("Me", new_path, true);
+            emit chatImage(msgID, QString("Me"), new_path);
         }
     }
     catch (std::exception& ex)
@@ -518,23 +536,6 @@ void QtWindowInterface::distrustKey(int index)
     }
 }
 
-void QtWindowInterface::windowWidthChanged(int newWidth)
-{
-    try
-    {
-        if (window_width != newWidth)
-        {
-            window_width = newWidth;
-            if (selected != -1)
-                emit refreshChat(GenerateLogStr(user_ext.at(user_id_map.at(selected))));
-        }
-    }
-    catch (std::exception& ex)
-    {
-        srv->on_exception(ex);
-    }
-}
-
 void QtWindowInterface::OnSelectChanged(int index)
 {
     try
@@ -543,12 +544,22 @@ void QtWindowInterface::OnSelectChanged(int index)
         {
             user_ext_type &usr = user_ext.at(user_id_map.at(index));
             emit enableFeature(usr.feature);
-            emit refreshChat(GenerateLogStr(usr));
+            emit chatClear();
+            std::list<user_ext_type::log_item>::const_iterator itr, itr_end;
+            int msgID = 0;
+            for (itr = usr.log.cbegin(), itr_end = usr.log.cend(); itr != itr_end; itr++)
+            {
+                if (itr->is_image)
+                    emit chatImage(msgID, itr->from, itr->image);
+                else
+                    emit chatText(msgID, itr->from, itr->msg);
+                msgID += 1;
+            }
         }
         else
         {
             emit enableFeature(0);
-            emit refreshChat(EmptyQString);
+            emit chatClear();
             emit refreshFilelist(GenerateFilelist());
         }
     }
@@ -614,59 +625,6 @@ QStringList QtWindowInterface::GenerateFilelist(user_ext_type &usr)
     }
 
     return name_list;
-}
-
-QString QtWindowInterface::GenerateLogStr(user_ext_type &usr)
-{
-    QString ret;
-    auto &log = usr.log;
-    ret.append("<style type=\"text/css\"> pre { margin-top: 0px 0; margin-bottom: 0px 0; } b { margin-top: 0px 0; margin-bottom: 0px 0; } </style>");
-    for (auto itr = log.begin(), itr_end = log.end(); itr != itr_end; itr++)
-    {
-        ret.append("<b>");
-        ret.append(itr->from);
-        ret.append("</b><pre>\n</pre>");
-        if (itr->is_image)
-        {
-            ret.append("<img src=\"file:/");
-            ret.append(itr->image);
-            ret.append("\" width=");
-            ret.append(QString::number(window_width));
-            ret.append("/>");
-        }
-        else
-        {
-            for (auto itr_c = itr->msg.begin(), itr_c_end = itr->msg.end(); itr_c != itr_c_end; itr_c++)
-            {
-                if (*itr_c == '<')
-                    ret.append("&lt;");
-                else if (*itr_c == '>')
-                    ret.append("&gt;");
-                else if (*itr_c == '&')
-                    ret.append("&amp;");
-                else if (*itr_c == ' ')
-                    ret.append("&nbsp;");
-                else if (*itr_c == '"')
-                    ret.append("&quot;");
-                else if (*itr_c == '\'')
-                    ret.append("&apos;");
-                else if (*itr_c == '\n')
-                    ret.append("<pre>\n</pre>");
-                else if (*itr_c == '\t')
-                    ret.append("&#09;");
-                else if (itr_c->isSpace())
-                {
-                    ret.append("&#");
-                    ret.append(QString::number(itr_c->unicode()));
-                    ret.push_back(';');
-                }
-                else
-                    ret.push_back(*itr_c);
-            }
-        }
-        ret.append("<pre>\n</pre>");
-    }
-    return ret;
 }
 
 void QtWindowInterface::GenerateKeylist()

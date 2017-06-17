@@ -59,9 +59,11 @@ Item {
             id: listView_file
             width: parent.width
             height: 410
-            orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            clip: true
+            orientation: ListView.Vertical
             currentIndex: selectedIndex
 
             model: FolderListModel {
@@ -82,6 +84,7 @@ Item {
                         Layout.fillHeight: true
 
                         source: fileIsDir ? folderIcon : fileIcon
+                        sourceSize.width: 512
                     }
                     Text {
                         Layout.fillWidth: true

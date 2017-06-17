@@ -20,5 +20,7 @@
         <file>ext_features/PageExpKey.qml</file>
         <file>PageImg.qml</file>
         <file>PageImgForm.ui.qml</file>
+        <file>ItemChatText.qml</file>
+        <file>ItemChatImage.qml</file>
     </qresource>
 </RCC>

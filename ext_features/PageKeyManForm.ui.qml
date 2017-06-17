@@ -23,9 +23,11 @@ Item {
             id: listView_keyman
             width: parent.width
             height: 360
-            orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            clip: true
+            orientation: ListView.Vertical
             currentIndex: selectedIndex
 
             model: ListModel {

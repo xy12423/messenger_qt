@@ -18,9 +18,11 @@ Item {
             id: listView_fstorage
             width: parent.width
             height: 440
-            orientation: ListView.Vertical
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            clip: true
+            orientation: ListView.Vertical
             currentIndex: selectedIndex
 
             model: ListModel {
