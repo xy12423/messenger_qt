@@ -22,5 +22,6 @@
         <file>PageImgForm.ui.qml</file>
         <file>ItemChatText.qml</file>
         <file>ItemChatImage.qml</file>
+        <file>ItemChatFile.qml</file>
     </qresource>
 </RCC>

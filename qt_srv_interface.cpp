@@ -162,11 +162,15 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     data.read(from_size);
                     std::string from;
                     data.read(from, from_size);
-                    window.RecvMsg(id, msg_utf8, from);
+                    window.ExecuteHandler([this, id, msg_utf8, from](){
+                        window.RecvMsg(id, msg_utf8, from);
+                    });
                 }
                 else
                 {
-                    window.RecvMsg(id, msg_utf8, empty_string);
+                    window.ExecuteHandler([this, id, msg_utf8](){
+                        window.RecvMsg(id, msg_utf8, empty_string);
+                    });
                 }
 
                 break;
@@ -187,6 +191,8 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 pos = fName.lastIndexOf('\\');
                 if (pos != -1)
                     fName.remove(0, pos + 1);
+                if (fName.isEmpty())
+                    fName = "unknown_file";
 
                 QDir fs(DOWNLOAD_PATH);
                 if (fs.exists(fName))
@@ -202,7 +208,9 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     fName.append("_");
                     fName.append(QString::number(i));
                 }
-                window.RecvFileH(id, fs.filePath(fName), blockCountAll);
+                window.ExecuteHandler([this, id, path = fs.filePath(fName), blockCountAll](){
+                    window.RecvFileH(id, path, blockCountAll);
+                });
 
                 break;
             }
@@ -212,7 +220,14 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(dataSize);
 
                 data.check(dataSize);
-                window.RecvFileB(id, data.data, dataSize);
+
+                std::promise<void> event_promise;
+                window.ExecuteHandler([&](){
+                    window.RecvFileB(id, data.data, dataSize);
+                    event_promise.set_value();
+                });
+                event_promise.get_future().get();
+
                 data.skip(dataSize);
 
                 break;
@@ -240,11 +255,15 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     data.read(from_size);
                     std::string from;
                     data.read(from, from_size);
-                    window.RecvImg(id, imagefile_path, from);
+                    window.ExecuteHandler([this, id, imagefile_path, from](){
+                        window.RecvImg(id, imagefile_path, from);
+                    });
                 }
                 else
                 {
-                    window.RecvImg(id, imagefile_path, empty_string);
+                    window.ExecuteHandler([this, id, imagefile_path](){
+                        window.RecvImg(id, imagefile_path, empty_string);
+                    });
                 }
 
 
@@ -254,7 +273,9 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
             {
                 uint32_t flag;
                 data.read(flag);
-                window.RecvFeature(id, flag);
+                window.ExecuteHandler([this, id, flag](){
+                    window.RecvFeature(id, flag);
+                });
                 break;
             }
             case PAC_TYPE_PLUGIN_DATA:
@@ -281,7 +302,13 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                             name_buf.clear();
                         }
 
-                        window.RecvFileList(id, list);
+                        std::promise<void> event_promise;
+                        window.ExecuteHandler([&](){
+                            window.RecvFileList(id, list);
+                            event_promise.set_value();
+                        });
+                        event_promise.get_future().get();
+
                         break;
                     }
                 }
@@ -309,7 +336,9 @@ void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 {
     IMG_TMP_PATH.mkpath(QString::number(id));
 
-    window.Join(id, key);
+    window.ExecuteHandler([this, id, key](){
+        window.Join(id, key);
+    });
 
     uint32_t flags = feature_message_from;
     std::string flags_buf;
@@ -324,7 +353,9 @@ void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 
 void qt_srv_interface::on_leave(user_id_type id)
 {
-    window.Leave(id);
+    window.ExecuteHandler([this, id](){
+        window.Leave(id);
+    });
 
     QDir tmp_path(IMG_TMP_PATH);
     tmp_path.cd(QString::number(id));

@@ -33,34 +33,46 @@ struct user_ext_type
     //Logs / Chat items
     struct log_item
     {
-        log_item(const QString &_from, const char* _msg) :from(_from), is_image(false), msg(_msg) {}
-        log_item(const QString &_from, const std::string& _msg) :from(_from), is_image(false), msg(_msg.data()) {}
-        log_item(const QString &_from, const QString& _str) :from(_from), is_image(false), msg(_str) {}
-        log_item(const QString &_from, const QString& _str, bool) :from(_from), is_image(true), image(_str) {}
+        enum log_item_type {
+            ITEM_TEXT,
+            ITEM_IMAGE,
+            ITEM_FILE,
+        };
+
+        log_item(const QString &_from, const char* _msg) :from(_from), type(ITEM_TEXT), msg(_msg) {}
+        log_item(const QString &_from, const std::string& _msg) :from(_from), type(ITEM_TEXT), msg(_msg.data()) {}
+        log_item(const QString &_from, const QString& _str) :from(_from), type(ITEM_TEXT), msg(_str) {}
+        log_item(const QString &_from, const QString& _str, bool) :from(_from), type(ITEM_IMAGE), image(_str) {}
+        log_item(const QString &_from, const QString& _str, int _id) :from(_from), type(ITEM_FILE), fileName(_str), fileID(_id), progress(0) {}
 
         QString from;
-        bool is_image;
+        log_item_type type;
+
         QString msg;
         QString image;
+        QString fileName;
+        int fileID, progress;
     };
-    std::list<log_item> log;
+    std::vector<log_item> log;
 
     //File transfer info
     struct send_task
     {
-        send_task(std::string&& _header, const QString& path, data_size_type _blockCountAll)
+        send_task(std::string&& _header, const QString& path, data_size_type _blockCountAll, int _id)
             :header(_header),
             fin(path.toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary),
-            blockCountAll(_blockCountAll)
+            blockCountAll(_blockCountAll),
+            sendID(_id)
         {}
 
         std::string header;
         std::ifstream fin;
-        data_size_type blockCount = 1, blockCountAll;
+        data_size_type blockCount = 0, blockCountAll;
+        int sendID;
     };
     std::list<send_task> sendTasks;
     QString recvFile;
-    int blockLast = 0;
+    int recvID = -1, blockAll = 0, blockLast = 0;
 
     //Ext info
     std::vector<std::pair<std::string, std::string>> file_list;
@@ -90,6 +102,8 @@ public:
     void Join(user_id_type id, const std::string& key);
     void Leave(user_id_type id);
 
+    void ExecuteHandler(std::function<void()>&& func) { emit executeFunc(std::make_shared<std::function<void()>>(std::move(func))); }
+
     int get_selected() { return selected; }
     void select(int index) { if (selected != index) { selected = index; emit selectIndex(index); } }
     int get_windowWidth() { return window_width; }
@@ -101,35 +115,44 @@ public:
     Q_INVOKABLE QUrl localStrToUrl(const QString& path) { return QUrl::fromLocalFile(path); }
     Q_INVOKABLE void printDebug(const QString& msg) { qDebug(msg.toUtf8()); }
 signals:
+    //Basic sig
     void joined(int index, const QString& name);
     void changeName(int index, const QString& name);
     void left(int index);
     void selectIndex(int index);
 
+    void executeFunc(const std::shared_ptr<std::function<void()>>& funcPtr);
+
+    //Chat items
     void chatClear();
     void chatText(int id, const QString& from, const QString& message);
     void chatImage(int id, const QString& from, const QString& imgPath);
     void chatFile(int id, const QString& from, const QString& filename);
-    void notifyFile(int id, int progress);
+    void notifyFileProgress(int fid, int progress);
 
+    //Exts
     void enableFeature(int flag);
     void refreshFilelist(const QStringList& files);
-
     void refreshKeylist(const QStringList& key, const QStringList& ex);
 
+    //For file transfer
     void sendFileBlock(int id);
 
     void windowWidthChanged(int newWidth);
 public slots:
+    //Basic op
     void connectTo(const QString& addr, const QString& port);
     void disconnect();
     void sendMsg(const QString& msg);
     void sendImg(const QUrl& img_url);
     void sendFile(const QUrl& file_url);
+    void reqFileProgress(int id);
 
+    //Ext::file_storage
     void reqFilelist();
     void reqDownloadFile(int index);
 
+    //Ext:key_manager
     void reqKeylist();
     void importKey(const QUrl& key_path);
     void exportKey(int index, const QUrl& key_path, const QString& file_name);
@@ -139,6 +162,7 @@ public slots:
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
+    void OnExecuteFunc(const std::shared_ptr<std::function<void()>>& funcPtr);
 private:
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);

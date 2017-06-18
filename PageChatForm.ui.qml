@@ -20,11 +20,10 @@ Item {
         ListView {
             id: listView_chat
             width: parent.width
-            Layout.preferredHeight: 405
+            Layout.preferredHeight: 400
             Layout.fillHeight: true
             Layout.fillWidth: true
             topMargin: 5
-            bottomMargin: 5
 
             clip: true
             orientation: ListView.Vertical
@@ -42,6 +41,11 @@ Item {
                 }
             }
             highlight: Rectangle { color: "lightsteelblue"; radius: 5 }
+        }
+
+        Item
+        {
+            Layout.preferredHeight: 5
         }
 
         Rectangle {
