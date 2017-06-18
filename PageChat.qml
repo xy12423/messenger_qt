@@ -18,10 +18,7 @@ PageChatForm {
             var scrollDown = listView_chat.atYEnd
             listModel_chat.append({ "id": id, "compType": "ItemChatText.qml", "from": from, "content": message })
             if (scrollDown)
-            {
                 listView_chat.positionViewAtEnd()
-                listView_chat.currentIndex = listView_chat.count - 1
-            }
         }
     }
 
@@ -31,10 +28,7 @@ PageChatForm {
             var scrollDown = listView_chat.atYEnd
             listModel_chat.append({ "id": id, "compType": "ItemChatImage.qml", "from": from, "content": imgPath })
             if (scrollDown)
-            {
                 listView_chat.positionViewAtEnd()
-                listView_chat.currentIndex = listView_chat.count - 1
-            }
         }
     }
 
@@ -44,10 +38,7 @@ PageChatForm {
             var scrollDown = listView_chat.atYEnd
             listModel_chat.append({ "id": id, "compType": "ItemChatFile.qml", "from": from, "content": filename })
             if (scrollDown)
-            {
                 listView_chat.positionViewAtEnd()
-                listView_chat.currentIndex = listView_chat.count - 1
-            }
         }
     }
 

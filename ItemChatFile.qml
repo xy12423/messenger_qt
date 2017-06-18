@@ -38,4 +38,8 @@ Column {
                 progress_itemChatFile.value = progress
         }
     }
+
+    Component.onCompleted: {
+        cppInterface.reqFileProgress(id)
+    }
 }
