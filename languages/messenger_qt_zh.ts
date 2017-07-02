@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>ItemChatText</name>
+    <message>
+        <location filename="../ItemChatText.qml" line="35"/>
+        <source>Text copied</source>
+        <translation>文字已复制</translation>
+    </message>
+</context>
+<context>
     <name>PageChatForm.ui</name>
     <message>
         <location filename="../PageChatForm.ui.qml" line="84"/>

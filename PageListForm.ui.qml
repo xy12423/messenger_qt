@@ -51,6 +51,7 @@ Item {
         RowLayout {
             width: parent.width
             Layout.preferredHeight: 40
+            Layout.maximumHeight: 60
             Layout.fillHeight: true
             Layout.fillWidth: true
 

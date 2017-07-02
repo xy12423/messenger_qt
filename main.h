@@ -113,7 +113,13 @@ public:
     Q_INVOKABLE QUrl getDownloadPath() { return QUrl::fromLocalFile(QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)); }
     Q_INVOKABLE QString urlToLocalStr(const QUrl& url) { return url.toLocalFile(); }
     Q_INVOKABLE QUrl localStrToUrl(const QString& path) { return QUrl::fromLocalFile(path); }
+    Q_INVOKABLE void print(const QString& msg) { emit printMessage(msg); }
+    Q_INVOKABLE void setClipboard(const QString& str) { QGuiApplication::clipboard()->setText(str); }
+
+#ifdef _DEBUG
     Q_INVOKABLE void printDebug(const QString& msg) { qDebug(msg.toUtf8()); }
+#endif
+
 signals:
     //Basic sig
     void joined(int index, const QString& name);
@@ -138,7 +144,9 @@ signals:
     //For file transfer
     void sendFileBlock(int id);
 
+    //Others
     void windowWidthChanged(int newWidth);
+    void printMessage(const QString& msg);
 public slots:
     //Basic op
     void connectTo(const QString& addr, const QString& port);
@@ -246,7 +254,7 @@ public:
     void edit_key(const std::string& key, _Ty&& ex) { certifiedKeys.at(key) = std::forward<_Ty>(ex); }
 
     void set_static_port(port_type port) { static_port = port; }
-    void new_image_id(int& id) { id = image_id; image_id++; }
+    void new_image_id(int& id) { id = image_id++; }
 
     virtual void on_error(const char* err) override { qWarning(QString::fromLocal8Bit(err).toUtf8()); }
 private:
@@ -257,7 +265,7 @@ private:
     std::list<port_type> ports;
     int static_port = -1;
 
-    int image_id = 0;
+    std::atomic_int image_id;
 
     QtWindowInterface &window;
 };

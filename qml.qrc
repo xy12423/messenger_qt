@@ -23,5 +23,6 @@
         <file>ItemChatText.qml</file>
         <file>ItemChatImage.qml</file>
         <file>ItemChatFile.qml</file>
+        <file>ItemToast.qml</file>
     </qresource>
 </RCC>

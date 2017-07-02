@@ -93,6 +93,8 @@ namespace msgr_proto
 			local_port = _local_port;
 		}
 
+		virtual ~pre_session() {}
+
 		void shutdown() { exiting = true; if (!successful) { socket->close(); proto_data->stop(); } }
 
 		port_type_l get_port() const { return local_port; }
@@ -190,7 +192,7 @@ namespace msgr_proto
 
 		session_base(server& _srv, port_type_l _local_port, const std::string& _key_string);
 		session_base(const session_base&) = delete;
-		~session_base();
+		virtual ~session_base();
 
 		void join();
 
@@ -245,7 +247,7 @@ namespace msgr_proto
 	class session : public session_base
 	{
 	private:
-        static constexpr size_t read_buffer_size = 0x4000, read_max_size = 0x1000000;
+		static constexpr size_t read_buffer_size = 0x4000, read_max_size = 0x1000000;
 
 		struct write_task {
 			write_task() {}
@@ -359,7 +361,7 @@ namespace msgr_proto
 		{
 		}
 
-		~server()
+		virtual ~server()
 		{
 			if (!closing)
 				shutdown();

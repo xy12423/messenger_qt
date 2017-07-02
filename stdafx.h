@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <future>
 #include <limits>
@@ -52,6 +53,7 @@ namespace asio = boost::asio;
 #include <QDir>
 #include <QStandardPaths>
 #include <QGuiApplication>
+#include <QClipboard>
 
 #ifdef _MSC_VER
 #pragma comment (lib, "cryptlib-md.lib")

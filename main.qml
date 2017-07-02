@@ -211,6 +211,20 @@ ApplicationWindow {
                 }
             }
         }
+
+        ItemToast {
+            id: toast
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: toast.height
+
+            Connections {
+                target: cppInterface
+                onPrintMessage: {
+                    toast.showToast(msg)
+                }
+            }
+        }
     }
 
     Timer {
