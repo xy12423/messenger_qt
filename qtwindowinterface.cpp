@@ -85,7 +85,6 @@ QtWindowInterface::QtWindowInterface(QGuiApplication& app)
 
     qRegisterMetaType<std::shared_ptr<std::function<void()>>>("std::shared_ptr<std::function<void()>>");
     connect(this, SIGNAL(selectIndex(int)), this, SLOT(OnSelectChanged(int)));
-    connect(this, SIGNAL(sendFileBlock(int)), this, SLOT(OnSendFileBlock(int)));
     connect(this, SIGNAL(executeFunc(const std::shared_ptr<std::function<void()>>&)), this, SLOT(OnExecuteFunc(const std::shared_ptr<std::function<void()>>&)));
     connect(&app, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(OnApplicationStateChanged(Qt::ApplicationState)));
 }
@@ -147,55 +146,54 @@ void QtWindowInterface::RecvImg(user_id_type id, const QString& path, const std:
         notify("Messenger", "New Message!");
 }
 
-void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_name, size_t block_count)
+void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_path, size_t block_count)
 {
-    ExecuteHandler([this, id, file_name, block_count]() {
-        user_ext_type &usr = user_ext.at(id);
-        usr.recvFile = file_name;
-        usr.blockAll = static_cast<int>(block_count);
-        usr.blockLast = static_cast<int>(block_count);
+    userFileTransferInfo &trans = userFileTrans.at(id);
+    trans.recvFile = file_path;
+    trans.blockAll = static_cast<int>(block_count);
+    trans.blockLast = static_cast<int>(block_count);
 
-        int msgID = static_cast<int>(usr.log.size());
-        usr.recvID = msgID;
-        usr.log.emplace_back(usr.addr, file_name, msgID);
+    int fileID = static_cast<int>(fileProgress.size());
+    trans.recvID = fileID;
+    fileProgress.push_back(0);
+
+    ExecuteHandler([this, id, fileID, file_path]() {
+        user_ext_type &usr = user_ext.at(id);
+        usr.log.emplace_back(usr.addr, file_path, fileID);
         if (selected != -1 && id == user_id_map.at(selected))
-            emit chatFile(msgID, usr.addr, file_name);
+            emit chatFile(fileID, usr.addr, file_path);
     });
 }
 
 void QtWindowInterface::RecvFileB(user_id_type id, const char* data, size_t size)
 {
-    std::promise<void> event_promise;
-    ExecuteHandler([&]() {
-        user_ext_type &usr = user_ext.at(id);
+    userFileTransferInfo &trans = userFileTrans.at(id);
 
-        if (usr.blockLast > 0)
+    if (trans.blockLast > 0)
+    {
+        std::ofstream fout(trans.recvFile.toLocal8Bit().data(), std::ios::out | std::ios::binary | std::ios::app);
+        fout.write(data, size);
+        fout.close();
+        trans.blockLast--;
+
+        try
         {
-            std::ofstream fout(usr.recvFile.toLocal8Bit().data(), std::ios::out | std::ios::binary | std::ios::app);
-            fout.write(data, size);
-            fout.close();
-            usr.blockLast--;
-
-            try
-            {
-                int progress = (usr.blockAll - usr.blockLast) * 100 / usr.blockAll;
-                usr.log.at(usr.recvID).progress = progress;
+            int progress = (trans.blockAll - trans.blockLast) * 100 / trans.blockAll;
+            fileProgress.at(trans.recvID) = progress;
+            ExecuteHandler([this, id, recvID = trans.recvID, progress]() {
                 if (selected != -1 && id == user_id_map.at(selected))
-                    emit notifyFileProgress(usr.recvID, progress);
-            }
-            catch (...) {}
-
-            if (usr.blockLast == 0)
-            {
-                usr.recvFile.clear();
-                usr.recvID = -1;
-                usr.blockAll = 0;
-            }
+                    emit notifyFileProgress(recvID, progress);
+            });
         }
+        catch (...) {}
 
-        event_promise.set_value();
-    });
-    event_promise.get_future().get();
+        if (trans.blockLast == 0)
+        {
+            trans.recvFile.clear();
+            trans.recvID = -1;
+            trans.blockAll = 0;
+        }
+    }
 }
 
 void QtWindowInterface::RecvFeature(user_id_type id, int flag)
@@ -208,20 +206,16 @@ void QtWindowInterface::RecvFeature(user_id_type id, int flag)
     });
 }
 
-void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>& list)
+void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>& _list)
 {
-    std::promise<void> event_promise;
-    ExecuteHandler([&]() {
+    ExecuteHandler([this, id, list = std::move(_list)]() {
         user_ext_type &usr = user_ext.at(id);
         if ((usr.feature & feature_file_storage) == 0)
             return;
         usr.file_list = std::move(list);
         if (selected != -1 && id == user_id_map.at(selected))
             emit refreshFilelist(GenerateFilelist(usr));
-
-        event_promise.set_value();
     });
-    event_promise.get_future().get();
 }
 
 void QtWindowInterface::Join(user_id_type id, const std::string& key)
@@ -250,6 +244,7 @@ void QtWindowInterface::Join(user_id_type id, const std::string& key)
             emit selectIndex(selected);
         }
     });
+    userFileTrans.emplace(id, userFileTransferInfo());
 }
 
 void QtWindowInterface::Leave(user_id_type id)
@@ -269,6 +264,7 @@ void QtWindowInterface::Leave(user_id_type id)
         user_id_map.erase(itr);
         user_ext.erase(id);
     });
+    userFileTrans.erase(id);
 }
 
 void QtWindowInterface::connectTo(const QString& addr, const QString& port_str)
@@ -398,51 +394,59 @@ void QtWindowInterface::sendFile(const QUrl& url)
 {
     try
     {
+        user_id_type uID = user_id_map.at(selected);
         QString path = url.toLocalFile();
-        QFileInfo file_info(path);
-        if (!path.isEmpty() && file_info.exists())
-        {
-            std::string file_name = path.toUtf8().toStdString();
-            size_t pos = file_name.rfind('/');
-            if (pos != std::string::npos)
-                file_name.erase(0, pos + 1);
-            pos = file_name.rfind('\\');
-            if (pos != std::string::npos)
-                file_name.erase(0, pos + 1);
 
-            qint64 file_size = file_info.size();
-            data_size_type blockCountAll;
-            if (file_size % FileBlockLen == 0)
-                blockCountAll = file_size / FileBlockLen;
-            else
-                blockCountAll = file_size / FileBlockLen + 1;
-            if (blockCountAll < 1)
-                return;
-            size_t file_name_size = file_name.size();
-            std::string data(9, '\0');
+        ExecuteHandlerMisc([this, uID, path]() {
+            QFileInfo file_info(path);
+            if (!path.isEmpty() && file_info.exists())
+            {
+                std::string file_name = path.toUtf8().toStdString();
+                size_t pos = file_name.rfind('/');
+                if (pos != std::string::npos)
+                    file_name.erase(0, pos + 1);
+                pos = file_name.rfind('\\');
+                if (pos != std::string::npos)
+                    file_name.erase(0, pos + 1);
 
-            data[0] = PAC_TYPE_FILE_H;
-            data[1] = static_cast<uint8_t>(blockCountAll & 0xFF);
-            data[2] = static_cast<uint8_t>(blockCountAll >> 8);
-            data[3] = static_cast<uint8_t>(blockCountAll >> 16);
-            data[4] = static_cast<uint8_t>(blockCountAll >> 24);
-            data[5] = static_cast<uint8_t>(file_name_size & 0xFF);
-            data[6] = static_cast<uint8_t>(file_name_size >> 8);
-            data[7] = static_cast<uint8_t>(file_name_size >> 16);
-            data[8] = static_cast<uint8_t>(file_name_size >> 24);
-            data.append(file_name);
+                qint64 file_size = file_info.size();
+                data_size_type blockCountAll;
+                if (file_size % FileBlockLen == 0)
+                    blockCountAll = file_size / FileBlockLen;
+                else
+                    blockCountAll = file_size / FileBlockLen + 1;
+                if (blockCountAll < 1)
+                    return;
+                size_t file_name_size = file_name.size();
+                std::string data(9, '\0');
 
-            user_id_type uID = user_id_map.at(selected);
-            user_ext_type &usr = user_ext.at(uID);
-            int msgID = static_cast<int>(usr.log.size());
-            bool sending = !usr.sendTasks.empty();
+                data[0] = PAC_TYPE_FILE_H;
+                data[1] = static_cast<uint8_t>(blockCountAll & 0xFF);
+                data[2] = static_cast<uint8_t>(blockCountAll >> 8);
+                data[3] = static_cast<uint8_t>(blockCountAll >> 16);
+                data[4] = static_cast<uint8_t>(blockCountAll >> 24);
+                data[5] = static_cast<uint8_t>(file_name_size & 0xFF);
+                data[6] = static_cast<uint8_t>(file_name_size >> 8);
+                data[7] = static_cast<uint8_t>(file_name_size >> 16);
+                data[8] = static_cast<uint8_t>(file_name_size >> 24);
+                data.append(file_name);
 
-            usr.sendTasks.emplace_back(std::move(data), path, blockCountAll, msgID);
-            usr.log.emplace_back("Me", path, msgID);
-            emit chatFile(msgID, "Me", path);
-            if (!sending)
-                emit sendFileBlock(uID);
-        }
+                userFileTransferInfo &trans = userFileTrans.at(uID);
+                bool sending = !trans.sendTasks.empty();
+
+                int fileID = static_cast<int>(fileProgress.size());
+                trans.sendTasks.emplace_back(data, path, blockCountAll, fileID);
+                fileProgress.push_back(0);
+                if (!sending)
+                    OnSendFileBlock(uID);
+
+                ExecuteHandler([this, uID, path, fileID]() {
+                    user_ext_type &usr = user_ext.at(uID);
+                    usr.log.emplace_back("Me", path, fileID);
+                    emit chatFile(fileID, "Me", path);
+                });
+            }
+        });
     }
     catch (std::exception& ex)
     {
@@ -454,7 +458,9 @@ void QtWindowInterface::reqFileProgress(int id)
 {
     try
     {
-        emit notifyFileProgress(id, user_ext.at(user_id_map.at(selected)).log.at(id).progress);
+        ExecuteHandlerMisc([this, id]() {
+            emit notifyFileProgress(id, fileProgress.at(id));
+        });
     }
     catch (std::exception& ex)
     {
@@ -644,7 +650,7 @@ void QtWindowInterface::OnSelectChanged(int index)
                     emit chatImage(msgID, itr->from, itr->image);
                     break;
                 case user_ext_type::log_item::ITEM_FILE:
-                    emit chatFile(msgID, itr->from, itr->fileName);
+                    emit chatFile(itr->fileID, itr->from, itr->fileName);
                     break;
                 }
                 msgID += 1;
@@ -669,10 +675,10 @@ void QtWindowInterface::OnSendFileBlock(int uID)
     {
         if (uID < 0 || uID > std::numeric_limits<user_id_type>::max() || user_ext.count(static_cast<user_id_type>(uID)) < 1)
             return;
-        std::list<user_ext_type::send_task> &tasks = user_ext.at(static_cast<user_id_type>(uID)).sendTasks;
+        std::list<userFileTransferInfo::sendTask> &tasks = userFileTrans.at(static_cast<user_id_type>(uID)).sendTasks;
         if (tasks.empty())
             return;
-        user_ext_type::send_task &task = tasks.front();
+        userFileTransferInfo::sendTask &task = tasks.front();
         if (task.blockCount == 0)
             srv->send_data(static_cast<user_id_type>(uID), std::move(task.header), msgr_proto::session::priority_file);
 
@@ -691,7 +697,7 @@ void QtWindowInterface::OnSendFileBlock(int uID)
         int progress = task.blockCount * 100 / task.blockCountAll;
         try
         {
-            user_ext.at(static_cast<user_id_type>(uID)).log.at(task.sendID).progress = progress;
+            fileProgress.at(task.sendID) = progress;
         }
         catch (...) {}
 
@@ -700,7 +706,9 @@ void QtWindowInterface::OnSendFileBlock(int uID)
                 if (selected != -1 && uID == user_id_map.at(selected))
                     emit notifyFileProgress(tID, progress);
             });
-            emit sendFileBlock(uID);
+            ExecuteHandlerMisc([this, uID]() {
+                OnSendFileBlock(uID);
+            });
         });
 
         if (task.fin.eof() || task.blockCount >= task.blockCountAll)

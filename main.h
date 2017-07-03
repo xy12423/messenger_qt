@@ -43,7 +43,7 @@ struct user_ext_type
         log_item(const QString &_from, const std::string& _msg) :from(_from), type(ITEM_TEXT), msg(_msg.data()) {}
         log_item(const QString &_from, const QString& _str) :from(_from), type(ITEM_TEXT), msg(_str) {}
         log_item(const QString &_from, const QString& _str, bool) :from(_from), type(ITEM_IMAGE), image(_str) {}
-        log_item(const QString &_from, const QString& _str, int _id) :from(_from), type(ITEM_FILE), fileName(_str), fileID(_id), progress(0) {}
+        log_item(const QString &_from, const QString& _str, int _id) :from(_from), type(ITEM_FILE), fileName(_str), fileID(_id) {}
 
         QString from;
         log_item_type type;
@@ -51,14 +51,19 @@ struct user_ext_type
         QString msg;
         QString image;
         QString fileName;
-        int fileID, progress;
+        int fileID;
     };
     std::vector<log_item> log;
 
-    //File transfer info
-    struct send_task
+    //Ext info
+    std::vector<std::pair<std::string, std::string>> file_list;
+};
+
+struct userFileTransferInfo
+{
+    struct sendTask
     {
-        send_task(std::string&& _header, const QString& path, data_size_type _blockCountAll, int _id)
+        sendTask(const std::string& _header, const QString& path, data_size_type _blockCountAll, int _id)
             :header(_header),
             fin(path.toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary),
             blockCountAll(_blockCountAll),
@@ -70,12 +75,10 @@ struct user_ext_type
         data_size_type blockCount = 0, blockCountAll;
         int sendID;
     };
-    std::list<send_task> sendTasks;
+    std::list<sendTask> sendTasks;
+
     QString recvFile;
     int recvID = -1, blockAll = 0, blockLast = 0;
-
-    //Ext info
-    std::vector<std::pair<std::string, std::string>> file_list;
 };
 
 class qt_srv_interface;
@@ -95,7 +98,7 @@ public:
 
     void RecvMsg(user_id_type id, const std::string& msg, const std::string& from);
     void RecvImg(user_id_type id, const QString& path, const std::string& from);
-    void RecvFileH(user_id_type id, const QString& file_name, size_t block_count);
+    void RecvFileH(user_id_type id, const QString& file_path, size_t block_count);
     void RecvFileB(user_id_type id, const char* data, size_t size);
     void RecvFeature(user_id_type id, int flag);
     void RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>&);
@@ -103,6 +106,7 @@ public:
     void Leave(user_id_type id);
 
     void ExecuteHandler(std::function<void()>&& func) { emit executeFunc(std::make_shared<std::function<void()>>(std::move(func))); }
+    void ExecuteHandlerMisc(std::function<void()>&& func) { threadMisc.get_io_service().post(std::move(func)); }
 
     int get_selected() { return selected; }
     void select(int index) { if (selected != index) { selected = index; emit selectIndex(index); } }
@@ -148,9 +152,6 @@ signals:
     void refreshFilelist(const QStringList& files);
     void refreshKeylist(const QStringList& key, const QStringList& ex);
 
-    //For file transfer
-    void sendFileBlock(int id);
-
     //Others
     void windowWidthChanged(int newWidth);
     void printMessage(const QString& msg);
@@ -179,13 +180,13 @@ public slots:
     void OnApplicationStateChanged(Qt::ApplicationState state);
 private slots:
     void OnSelectChanged(int);
-    void OnSendFileBlock(int);
     void OnExecuteFunc(const std::shared_ptr<std::function<void()>>& funcPtr);
 private:
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);
     void GenerateKeylist();
     void RefreshComments();
+    void OnSendFileBlock(int);
 
 #ifdef ANDROID
     void notifyMessage(const QString& title, const QString& msg);
@@ -193,18 +194,21 @@ private:
 #endif
 
     iosrvThread threadNetwork, threadMisc;
+    std::unique_ptr<crypto::provider> cryp_helper;
     std::unique_ptr<crypto::server> crypto_srv;
     std::unique_ptr<qt_srv_interface> srv;
 
+    //Basic data
     std::unordered_map<user_id_type, user_ext_type> user_ext;
+    std::unordered_map<user_id_type, userFileTransferInfo> userFileTrans;
+    std::vector<int> fileProgress;
 
     int selected = -1;
     std::vector<user_id_type> user_id_map;
 
+    //Ext data
     std::vector<std::string> file_id_map;
     std::vector<key_item> key_list;
-
-    std::unique_ptr<crypto::provider> cryp_helper;
 
     std::unique_ptr<char[]> file_block;
 
