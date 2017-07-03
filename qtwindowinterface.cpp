@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include <QFileInfo>
+#ifdef ANDROID
+#include <QtAndroidExtras/QAndroidJniObject>
+#endif
 #include "crypto.h"
 #include "main.h"
 
@@ -45,7 +48,7 @@ bool is_image(const char* data, size_t size)
     return false;
 }
 
-QtWindowInterface::QtWindowInterface()
+QtWindowInterface::QtWindowInterface(QGuiApplication& app)
     :file_block(std::make_unique<char[]>(FileBlockLen))
 {
     QDir fs;
@@ -84,6 +87,7 @@ QtWindowInterface::QtWindowInterface()
     connect(this, SIGNAL(selectIndex(int)), this, SLOT(OnSelectChanged(int)));
     connect(this, SIGNAL(sendFileBlock(int)), this, SLOT(OnSendFileBlock(int)));
     connect(this, SIGNAL(executeFunc(const std::shared_ptr<std::function<void()>>&)), this, SLOT(OnExecuteFunc(const std::shared_ptr<std::function<void()>>&)));
+    connect(&app, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(OnApplicationStateChanged(Qt::ApplicationState)));
 }
 
 QtWindowInterface::~QtWindowInterface()
@@ -101,142 +105,170 @@ QtWindowInterface::~QtWindowInterface()
 
 void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg, const std::string& from)
 {
-    user_ext_type &usr = user_ext.at(id);
-    int msgID = static_cast<int>(usr.log.size());
-    bool has_from = !from.empty();
-    if (has_from)
-        usr.log.emplace_back(from.c_str(), msg);
-    else
-        usr.log.emplace_back(usr.addr, msg);
-    if (selected != -1 && id == user_id_map.at(selected))
-    {
+    ExecuteHandler([this, id, msg, from]() {
+        user_ext_type &usr = user_ext.at(id);
+        int msgID = static_cast<int>(usr.log.size());
+        bool has_from = !from.empty();
         if (has_from)
-            emit chatText(msgID, QString::fromUtf8(from.c_str()), QString::fromUtf8(msg.c_str()));
+            usr.log.emplace_back(from.c_str(), msg);
         else
-            emit chatText(msgID, usr.addr, QString::fromUtf8(msg.c_str()));
-    }
+            usr.log.emplace_back(usr.addr, msg);
+        if (selected != -1 && id == user_id_map.at(selected))
+        {
+            if (has_from)
+                emit chatText(msgID, QString::fromUtf8(from.c_str()), QString::fromUtf8(msg.c_str()));
+            else
+                emit chatText(msgID, usr.addr, QString::fromUtf8(msg.c_str()));
+        }
+    });
+    if (is_in_background)
+        notify("Messenger", "New Message!");
 }
 
 void QtWindowInterface::RecvImg(user_id_type id, const QString& path, const std::string& from)
 {
-    user_ext_type &usr = user_ext.at(id);
-    int msgID = static_cast<int>(usr.log.size());
-    bool has_from = !from.empty();
-    if (!from.empty())
-        usr.log.emplace_back(from.c_str(), path, true);
-    else
-        usr.log.emplace_back(usr.addr, path, true);
-    if (selected != -1 && id == user_id_map.at(selected))
-    {
-        if (has_from)
-            emit chatImage(msgID, QString::fromUtf8(from.c_str()), path);
+    ExecuteHandler([this, id, path, from]() {
+        user_ext_type &usr = user_ext.at(id);
+        int msgID = static_cast<int>(usr.log.size());
+        bool has_from = !from.empty();
+        if (!from.empty())
+            usr.log.emplace_back(from.c_str(), path, true);
         else
-            emit chatImage(msgID, usr.addr, path);
-    }
+            usr.log.emplace_back(usr.addr, path, true);
+        if (selected != -1 && id == user_id_map.at(selected))
+        {
+            if (has_from)
+                emit chatImage(msgID, QString::fromUtf8(from.c_str()), path);
+            else
+                emit chatImage(msgID, usr.addr, path);
+        }
+    });
+    if (is_in_background)
+        notify("Messenger", "New Message!");
 }
 
 void QtWindowInterface::RecvFileH(user_id_type id, const QString& file_name, size_t block_count)
 {
-    user_ext_type &usr = user_ext.at(id);
-    usr.recvFile = file_name;
-    usr.blockAll = static_cast<int>(block_count);
-    usr.blockLast = static_cast<int>(block_count);
+    ExecuteHandler([this, id, file_name, block_count]() {
+        user_ext_type &usr = user_ext.at(id);
+        usr.recvFile = file_name;
+        usr.blockAll = static_cast<int>(block_count);
+        usr.blockLast = static_cast<int>(block_count);
 
-    int msgID = static_cast<int>(usr.log.size());
-    usr.recvID = msgID;
-    usr.log.emplace_back(usr.addr, file_name, msgID);
-    if (selected != -1 && id == user_id_map.at(selected))
-        emit chatFile(msgID, usr.addr, file_name);
+        int msgID = static_cast<int>(usr.log.size());
+        usr.recvID = msgID;
+        usr.log.emplace_back(usr.addr, file_name, msgID);
+        if (selected != -1 && id == user_id_map.at(selected))
+            emit chatFile(msgID, usr.addr, file_name);
+    });
 }
 
 void QtWindowInterface::RecvFileB(user_id_type id, const char* data, size_t size)
 {
-    user_ext_type &usr = user_ext.at(id);
+    std::promise<void> event_promise;
+    ExecuteHandler([&]() {
+        user_ext_type &usr = user_ext.at(id);
 
-    if (usr.blockLast > 0)
-    {
-        std::ofstream fout(usr.recvFile.toLocal8Bit().data(), std::ios::out | std::ios::binary | std::ios::app);
-        fout.write(data, size);
-        fout.close();
-        usr.blockLast--;
-
-        try
+        if (usr.blockLast > 0)
         {
-            int progress = (usr.blockAll - usr.blockLast) * 100 / usr.blockAll;
-            usr.log.at(usr.recvID).progress = progress;
-            if (selected != -1 && id == user_id_map.at(selected))
-                emit notifyFileProgress(usr.recvID, progress);
-        }
-        catch (...) {}
+            std::ofstream fout(usr.recvFile.toLocal8Bit().data(), std::ios::out | std::ios::binary | std::ios::app);
+            fout.write(data, size);
+            fout.close();
+            usr.blockLast--;
 
-        if (usr.blockLast == 0)
-        {
-            usr.recvFile.clear();
-            usr.recvID = -1;
-            usr.blockAll = 0;
+            try
+            {
+                int progress = (usr.blockAll - usr.blockLast) * 100 / usr.blockAll;
+                usr.log.at(usr.recvID).progress = progress;
+                if (selected != -1 && id == user_id_map.at(selected))
+                    emit notifyFileProgress(usr.recvID, progress);
+            }
+            catch (...) {}
+
+            if (usr.blockLast == 0)
+            {
+                usr.recvFile.clear();
+                usr.recvID = -1;
+                usr.blockAll = 0;
+            }
         }
-    }
+
+        event_promise.set_value();
+    });
+    event_promise.get_future().get();
 }
 
 void QtWindowInterface::RecvFeature(user_id_type id, int flag)
 {
-    user_ext_type &usr = user_ext.at(id);
-    usr.feature = flag;
-    if (selected != -1 && id == user_id_map.at(selected))
-        emit enableFeature(flag);
+    ExecuteHandler([this, id, flag]() {
+        user_ext_type &usr = user_ext.at(id);
+        usr.feature = flag;
+        if (selected != -1 && id == user_id_map.at(selected))
+            emit enableFeature(flag);
+    });
 }
 
 void QtWindowInterface::RecvFileList(user_id_type id, std::vector<std::pair<std::string, std::string>>& list)
 {
-    user_ext_type &usr = user_ext.at(id);
-    if ((usr.feature & feature_file_storage) == 0)
-        return;
-    usr.file_list = std::move(list);
-    if (selected != -1 && id == user_id_map.at(selected))
-        emit refreshFilelist(GenerateFilelist(usr));
+    std::promise<void> event_promise;
+    ExecuteHandler([&]() {
+        user_ext_type &usr = user_ext.at(id);
+        if ((usr.feature & feature_file_storage) == 0)
+            return;
+        usr.file_list = std::move(list);
+        if (selected != -1 && id == user_id_map.at(selected))
+            emit refreshFilelist(GenerateFilelist(usr));
+
+        event_promise.set_value();
+    });
+    event_promise.get_future().get();
 }
 
 void QtWindowInterface::Join(user_id_type id, const std::string& key)
 {
-    user_ext_type &usr = user_ext[id];
-    usr.addr = srv->get_session(id).get_address().c_str();
-    usr.key = key;
+    ExecuteHandler([this, id, key]() {
+        user_ext_type &usr = user_ext[id];
+        usr.addr = srv->get_session(id).get_address().c_str();
+        usr.key = key;
 
-    QString name = usr.addr;
-    try
-    {
-        usr.comment = srv->get_key_ex(key);
-        usr.have_comment = true;
-        name.append('(');
-        name.append(QString::fromStdString(usr.comment));
-        name.append(')');
-    }
-    catch (std::out_of_range&) {}
-    int new_index = static_cast<int>(user_id_map.size());
-    user_id_map.push_back(id);
-    emit joined(new_index, name);
-    if (selected == -1)
-    {
-        selected = new_index;
-        emit selectIndex(selected);
-    }
+        QString name = usr.addr;
+        try
+        {
+            usr.comment = srv->get_key_ex(key);
+            usr.have_comment = true;
+            name.append('(');
+            name.append(QString::fromStdString(usr.comment));
+            name.append(')');
+        }
+        catch (std::out_of_range&) {}
+        int new_index = static_cast<int>(user_id_map.size());
+        user_id_map.push_back(id);
+        emit joined(new_index, name);
+        if (selected == -1)
+        {
+            selected = new_index;
+            emit selectIndex(selected);
+        }
+    });
 }
 
 void QtWindowInterface::Leave(user_id_type id)
 {
-    int i = 0;
-    std::vector<user_id_type>::iterator itr = user_id_map.begin(), itrEnd = user_id_map.end();
-    for (; itr != itrEnd && *itr != id; itr++) i++;
-    if (selected == i)
-    {
-        selected = -1;
-        emit selectIndex(selected);
-    }
-    emit left(i);
-    if (selected > i)
-        selected -= 1;
-    user_id_map.erase(itr);
-    user_ext.erase(id);
+    ExecuteHandler([this, id]() {
+        int i = 0;
+        std::vector<user_id_type>::iterator itr = user_id_map.begin(), itrEnd = user_id_map.end();
+        for (; itr != itrEnd && *itr != id; itr++) i++;
+        if (selected == i)
+        {
+            selected = -1;
+            emit selectIndex(selected);
+        }
+        emit left(i);
+        if (selected > i)
+            selected -= 1;
+        user_id_map.erase(itr);
+        user_ext.erase(id);
+    });
 }
 
 void QtWindowInterface::connectTo(const QString& addr, const QString& port_str)
@@ -575,6 +607,21 @@ void QtWindowInterface::distrustKey(int index)
     }
 }
 
+void QtWindowInterface::OnApplicationStateChanged(Qt::ApplicationState state)
+{
+    try
+    {
+        bool is_in_background_now = ((state & (Qt::ApplicationInactive | Qt::ApplicationActive)) == 0);
+        if (is_in_background && !is_in_background_now)
+            notifyClear();
+        is_in_background = is_in_background_now;
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
 void QtWindowInterface::OnSelectChanged(int index)
 {
     try
@@ -740,3 +787,39 @@ void QtWindowInterface::RefreshComments()
         }
     }
 }
+
+#ifdef ANDROID
+void QtWindowInterface::notifyMessage(const QString& title, const QString& msg)
+{
+    try
+    {
+        QAndroidJniObject title_java = QAndroidJniObject::fromString(title),
+                          msg_java   = QAndroidJniObject::fromString(msg);
+        QAndroidJniObject::callStaticMethod<void>("org/xy12423/messenger_qt/QtJavaInter",
+                                                  "notify",
+                                                  "(Ljava/lang/String;Ljava/lang/String;)V",
+                                                  title_java.object<jstring>(),
+                                                  msg_java.object<jstring>());
+
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::notifyMessageClear()
+{
+    try
+    {
+        QAndroidJniObject::callStaticMethod<void>("org/xy12423/messenger_qt/QtJavaInter",
+                                                  "notifyCancel",
+                                                  "()V");
+
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+#endif

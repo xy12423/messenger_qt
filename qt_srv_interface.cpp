@@ -162,15 +162,11 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     data.read(from_size);
                     std::string from;
                     data.read(from, from_size);
-                    window.ExecuteHandler([this, id, msg_utf8, from](){
-                        window.RecvMsg(id, msg_utf8, from);
-                    });
+                    window.RecvMsg(id, msg_utf8, from);
                 }
                 else
                 {
-                    window.ExecuteHandler([this, id, msg_utf8](){
-                        window.RecvMsg(id, msg_utf8, empty_string);
-                    });
+                    window.RecvMsg(id, msg_utf8, empty_string);
                 }
 
                 break;
@@ -208,9 +204,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     fName.append("_");
                     fName.append(QString::number(i));
                 }
-                window.ExecuteHandler([this, id, path = fs.filePath(fName), blockCountAll](){
-                    window.RecvFileH(id, path, blockCountAll);
-                });
+                window.RecvFileH(id, fs.filePath(fName), blockCountAll);
 
                 break;
             }
@@ -220,14 +214,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                 data.read(dataSize);
 
                 data.check(dataSize);
-
-                std::promise<void> event_promise;
-                window.ExecuteHandler([&](){
-                    window.RecvFileB(id, data.data, dataSize);
-                    event_promise.set_value();
-                });
-                event_promise.get_future().get();
-
+                window.RecvFileB(id, data.data, dataSize);
                 data.skip(dataSize);
 
                 break;
@@ -255,15 +242,11 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                     data.read(from_size);
                     std::string from;
                     data.read(from, from_size);
-                    window.ExecuteHandler([this, id, imagefile_path, from](){
-                        window.RecvImg(id, imagefile_path, from);
-                    });
+                    window.RecvImg(id, imagefile_path, from);
                 }
                 else
                 {
-                    window.ExecuteHandler([this, id, imagefile_path](){
-                        window.RecvImg(id, imagefile_path, empty_string);
-                    });
+                    window.RecvImg(id, imagefile_path, empty_string);
                 }
 
 
@@ -273,9 +256,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
             {
                 uint32_t flag;
                 data.read(flag);
-                window.ExecuteHandler([this, id, flag](){
-                    window.RecvFeature(id, flag);
-                });
+                window.RecvFeature(id, flag);
                 break;
             }
             case PAC_TYPE_PLUGIN_DATA:
@@ -302,12 +283,7 @@ void qt_srv_interface::on_data(user_id_type id, const std::string& _data)
                             name_buf.clear();
                         }
 
-                        std::promise<void> event_promise;
-                        window.ExecuteHandler([&](){
-                            window.RecvFileList(id, list);
-                            event_promise.set_value();
-                        });
-                        event_promise.get_future().get();
+                        window.RecvFileList(id, list);
 
                         break;
                     }
@@ -336,9 +312,7 @@ void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 {
     IMG_TMP_PATH.mkpath(QString::number(id));
 
-    window.ExecuteHandler([this, id, key](){
-        window.Join(id, key);
-    });
+    window.Join(id, key);
 
     uint32_t flags = feature_message_from;
     std::string flags_buf;
@@ -353,9 +327,7 @@ void qt_srv_interface::on_join(user_id_type id, const std::string& key)
 
 void qt_srv_interface::on_leave(user_id_type id)
 {
-    window.ExecuteHandler([this, id](){
-        window.Leave(id);
-    });
+    window.Leave(id);
 
     QDir tmp_path(IMG_TMP_PATH);
     tmp_path.cd(QString::number(id));

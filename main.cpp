@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
     app.installTranslator(&translator);
 
     QQmlApplicationEngine engine;
-    QtWindowInterface inter;
+    QtWindowInterface inter(app);
     engine.rootContext()->setContextProperty("cppInterface", &inter);
     engine.load(QUrl(QLatin1String("qrc:/main.qml")));
 

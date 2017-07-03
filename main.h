@@ -90,7 +90,7 @@ private:
     static constexpr int FileBlockLen = 0x80000;
 
 public:
-    QtWindowInterface();
+    QtWindowInterface(QGuiApplication& app);
     ~QtWindowInterface();
 
     void RecvMsg(user_id_type id, const std::string& msg, const std::string& from);
@@ -116,9 +116,16 @@ public:
     Q_INVOKABLE void print(const QString& msg) { emit printMessage(msg); }
     Q_INVOKABLE void setClipboard(const QString& str) { QGuiApplication::clipboard()->setText(str); }
 
-#ifdef _DEBUG
-    Q_INVOKABLE void printDebug(const QString& msg) { qDebug(msg.toUtf8()); }
+
+#ifdef ANDROID
+    Q_INVOKABLE void notify(const QString& title, const QString& msg) { notifyMessage(title, msg); }
+    Q_INVOKABLE void notifyClear() { notifyMessageClear(); }
+#else
+    Q_INVOKABLE void notify(const QString&, const QString&) {}
+    Q_INVOKABLE void notifyClear() {}
 #endif
+
+    Q_INVOKABLE void printDebug(const QString& msg) { qDebug(msg.toUtf8()); }
 
 signals:
     //Basic sig
@@ -167,6 +174,9 @@ public slots:
     void modifyKey(int index, const QString& ex);
     void trustKey();
     void distrustKey(int index);
+
+    //Others
+    void OnApplicationStateChanged(Qt::ApplicationState state);
 private slots:
     void OnSelectChanged(int);
     void OnSendFileBlock(int);
@@ -176,6 +186,11 @@ private:
     QStringList GenerateFilelist(user_ext_type& usr);
     void GenerateKeylist();
     void RefreshComments();
+
+#ifdef ANDROID
+    void notifyMessage(const QString& title, const QString& msg);
+    void notifyMessageClear();
+#endif
 
     iosrvThread threadNetwork, threadMisc;
     std::unique_ptr<crypto::server> crypto_srv;
@@ -194,6 +209,7 @@ private:
     std::unique_ptr<char[]> file_block;
 
     int window_width;
+    bool is_in_background = false;
 };
 
 enum pac_type {

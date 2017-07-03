@@ -41,6 +41,7 @@ win32 {
 }
 
 android {
+    QT += androidextras
     QMAKE_CXXFLAGS += -DANDROID -DASIO_STANDALONE -fexceptions -frtti
 
     LIBS += -LD:/androidlibs/$$ANDROID_TARGET_ARCH
@@ -56,6 +57,7 @@ DISTFILES += \
     android/res/values/libs.xml \
     android/build.gradle \
     android/gradle/wrapper/gradle-wrapper.properties \
-    android/gradlew.bat
+    android/gradlew.bat \
+    android/src/org/xy12423/messenger_qt/QtJavaInter.java
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
