@@ -347,7 +347,8 @@ namespace msgr_proto
 			crypto::server& _crypto_srv)
 			:main_iosrv(_main_io_service), misc_iosrv(_misc_io_service),
 			acceptor(main_iosrv, _local_endpoint), resolver(main_iosrv),
-			crypto_prov(_crypto_prov), crypto_srv(_crypto_srv), e0str(_crypto_prov.GetPublicKeyString())
+            crypto_prov(_crypto_prov), crypto_srv(_crypto_srv), e0str(_crypto_prov.GetPublicKeyString()),
+            session_active_count(0)
 		{
 		}
 
@@ -357,7 +358,8 @@ namespace msgr_proto
 			crypto::server& _crypto_srv)
 			:main_iosrv(_main_io_service), misc_iosrv(_misc_io_service),
 			acceptor(main_iosrv), resolver(main_iosrv),
-			crypto_prov(_crypto_prov), crypto_srv(_crypto_srv), e0str(_crypto_prov.GetPublicKeyString())
+            crypto_prov(_crypto_prov), crypto_srv(_crypto_srv), e0str(_crypto_prov.GetPublicKeyString()),
+            session_active_count(0)
 		{
 		}
 
@@ -427,7 +429,7 @@ namespace msgr_proto
 		std::unordered_set<std::shared_ptr<pre_session>> pre_sessions;
 		session_list_type sessions;
 		user_id_type nextID = 0;
-		volatile user_id_type session_active_count = 0;
+        std::atomic<user_id_type> session_active_count;
 
 		std::mutex session_mutex, pre_session_mutex;
 		volatile bool started = false, closing = false;

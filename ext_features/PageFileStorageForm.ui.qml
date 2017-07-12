@@ -36,9 +36,11 @@ Item {
                 Text {
                     text: name
                     anchors.left: parent.left
-                    anchors.leftMargin: 5
+                    anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.verticalCenterOffset: 0
+                    leftPadding: 5
+                    rightPadding: 5
                 }
                 MouseArea {
                     anchors.fill: parent

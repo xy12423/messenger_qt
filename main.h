@@ -120,7 +120,6 @@ public:
     Q_INVOKABLE void print(const QString& msg) { emit printMessage(msg); }
     Q_INVOKABLE void setClipboard(const QString& str) { QGuiApplication::clipboard()->setText(str); }
 
-
 #ifdef ANDROID
     Q_INVOKABLE void notify(const QString& title, const QString& msg) { notifyMessage(title, msg); }
     Q_INVOKABLE void notifyClear() { notifyMessageClear(); }
@@ -153,6 +152,8 @@ signals:
     void refreshKeylist(const QStringList& key, const QStringList& ex);
 
     //Others
+    void refreshConnHistory(const QStringList& addr, const QStringList& port);
+
     void windowWidthChanged(int newWidth);
     void printMessage(const QString& msg);
 public slots:
@@ -177,16 +178,23 @@ public slots:
     void distrustKey(int index);
 
     //Others
-    void OnApplicationStateChanged(Qt::ApplicationState state);
+    void reqConnHistory();
+    void reqConnHistoryDel(int index);
+
+    void onApplicationStateChanged(Qt::ApplicationState state);
 private slots:
-    void OnSelectChanged(int);
-    void OnExecuteFunc(const std::shared_ptr<std::function<void()>>& funcPtr);
+    void onSelectChanged(int);
+    void onExecuteFunc(const std::shared_ptr<std::function<void()>>& funcPtr);
 private:
     QStringList GenerateFilelist();
     QStringList GenerateFilelist(user_ext_type& usr);
     void GenerateKeylist();
     void RefreshComments();
-    void OnSendFileBlock(int);
+    void SendFileBlock(int);
+
+    void LoadConnHistory();
+    void SaveConnHistory();
+    void AddConnHistory(const QString& addr, port_type port);
 
 #ifdef ANDROID
     void notifyMessage(const QString& title, const QString& msg);
@@ -212,6 +220,7 @@ private:
 
     std::unique_ptr<char[]> file_block;
 
+    std::vector<std::pair<QString, port_type>> connHistory;
     int window_width;
     bool is_in_background = false;
 };
@@ -289,5 +298,12 @@ private:
 
     QtWindowInterface &window;
 };
+
+inline uint16_t u16_from_data(char* data)
+{
+    return static_cast<uint16_t>(static_cast<uint8_t>(data[0]) | (static_cast<uint32_t>(static_cast<uint8_t>(data[1])) << 8));
+}
+
+extern QString TEMP_PATH, DATA_PATH, DOWNLOAD_PATH;
 
 #endif

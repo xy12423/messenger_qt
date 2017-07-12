@@ -16,7 +16,7 @@ Column {
 
     Text {
         width: cppInterface.windowWidth
-        leftPadding: 5
+        leftPadding: 7
         rightPadding: 5
 
         text: content
@@ -26,6 +26,8 @@ Column {
     ProgressBar {
         id: progress_itemChatFile
         width: cppInterface.windowWidth
+        leftPadding: 7
+        rightPadding: 5
         height: 15
         to: 100
     }

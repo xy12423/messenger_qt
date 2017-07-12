@@ -9,97 +9,159 @@ Item {
     property alias button_conn: button_conn
     property alias textInput_addr: textInput_addr
     property alias textInput_port: textInput_port
+    property alias listView_join: listView_join
+    property alias listModel_join: listModel_join
+    property int reqConnWatcher: 0
+    property int reqConnIndex: -1
+    property int reqConnDelWatcher: 0
+    property int reqConnDelIndex: -1
 
-    RowLayout {
-        id: rowLayout_addr
-        width: 200
-        height: 20
-        anchors.verticalCenterOffset: -60
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: 0
 
-        Text {
-            id: text_addr
-            height: 20
-            Layout.fillHeight: true
-            text: qsTr("Address:")
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 12
-        }
-
-        Rectangle {
-            height: 20
+        RowLayout {
+            width: parent.width
+            Layout.preferredHeight: 24
+            Layout.maximumHeight: 24
             Layout.fillHeight: true
             Layout.fillWidth: true
-            anchors.left: text_addr.right
-            anchors.leftMargin: 5
 
-            color: "#cccccc"
+            spacing: 5
 
-            TextInput {
-                id: textInput_addr
-                anchors.fill: parent
+            Text {
+                height: parent.height
+                Layout.fillHeight: true
+                leftPadding: 5
 
                 verticalAlignment: Text.AlignVCenter
+                text: qsTr("Address:")
                 font.pixelSize: 12
             }
+
+            Rectangle {
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+
+                color: "#cccccc"
+
+                TextInput {
+                    id: textInput_addr
+                    anchors.fill: parent
+
+                    leftPadding: 5
+                    rightPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: 12
+                }
+            }
+
+            Text {
+                height: parent.height
+                Layout.fillHeight: true
+
+                verticalAlignment: Text.AlignVCenter
+                text: qsTr("Port:")
+                font.pixelSize: 12
+            }
+
+            Rectangle {
+                height: parent.height
+                Layout.preferredWidth: 40
+                Layout.fillHeight: true
+
+                color: "#cccccc"
+
+                TextInput {
+                    id: textInput_port
+                    anchors.fill: parent
+
+                    leftPadding: 5
+                    rightPadding: 5
+                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: 12
+
+                    text: "4826"
+                }
+            }
         }
-    }
 
-    RowLayout {
-        id: rowLayout_port
-        width: 200
-        height: 20
-        anchors.top: rowLayout_addr.bottom
-        anchors.topMargin: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-
-        Text {
-            id: text_port
-            height: 20
-            Layout.fillHeight: true
-            text: qsTr("Port:")
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 12
-        }
-
-        Rectangle {
-            height: 20
+        ListView {
+            id: listView_join
+            width: parent.width
+            Layout.preferredHeight: 400
             Layout.fillHeight: true
             Layout.fillWidth: true
-            anchors.left: text_port.right
-            anchors.leftMargin: 5
 
-            color: "#cccccc"
+            clip: true
+            orientation: ListView.Vertical
+            spacing: 5
 
-            TextInput {
-                id: textInput_port
-                anchors.fill: parent
+            model: ListModel {
+                id: listModel_join
+            }
 
-                text: "4826"
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: 12
+            delegate: RowLayout {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 20
+
+                Item {
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+
+                    Text {
+                        anchors.fill: parent
+                        text: address + ":" + portStr
+
+                        leftPadding: 5
+                        rightPadding: 5
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+
+                        onPressed: reqConnIndex = index, reqConnWatcher = 1 - reqConnWatcher
+                    }
+                }
+
+                Button {
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: parent.height
+                    Layout.preferredWidth: parent.height
+
+                    text: "×"
+
+                    onPressed: reqConnDelIndex = index, reqConnDelWatcher = 1 - reqConnDelWatcher
+                }
             }
         }
-    }
 
-    Button {
-        id: button_conn
-        width: 150
-        height: 22
-        anchors.top: rowLayout_port.bottom
-        anchors.topMargin: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: qsTr("Connect")
-    }
+        RowLayout {
+            width: parent.width
+            Layout.preferredHeight: 40
+            Layout.maximumHeight: 60
+            Layout.fillHeight: true
+            Layout.fillWidth: true
 
-    Button {
-        id: button_cancel_conn
-        width: 150
-        height: 22
-        anchors.top: button_conn.bottom
-        anchors.topMargin: 10
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: qsTr("Cancel")
+            Button {
+                id: button_conn
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                text: qsTr("Connect")
+            }
+
+            Button {
+                id: button_cancel_conn
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                text: qsTr("Cancel")
+            }
+        }
     }
 }

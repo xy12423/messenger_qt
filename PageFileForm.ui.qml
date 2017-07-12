@@ -27,8 +27,6 @@ Item {
 
             Button {
                 id: button_back
-                width: parent.height
-                height: parent.height
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 Layout.maximumWidth: parent.height
@@ -72,11 +70,13 @@ Item {
             }
 
             delegate: Item {
-                width: parent.width
+                anchors.left: parent.left
+                anchors.right: parent.right
                 height: 20
                 RowLayout
                 {
                     anchors.fill: parent
+                    spacing: 5
                     Image {
                         id: image_listViewItem
                         Layout.preferredWidth: 20
@@ -89,10 +89,6 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        anchors.left: image_listViewItem.right
-                        anchors.leftMargin: 5
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.verticalCenterOffset: 0
 
                         text: fileName
                         verticalAlignment: TextField.AlignVCenter

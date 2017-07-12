@@ -1,13 +1,11 @@
 #include "stdafx.h"
 #include "main.h"
 
-//extern FileSendThread *threadFileSend;
-extern QString TEMP_PATH, DATA_PATH, DOWNLOAD_PATH;
 const char* IMG_TMP_PATH_NAME = ".messenger_tmp";
 const char* IMG_TMP_FILE_NAME = ".messenger_tmp_";
-QDir IMG_TMP_PATH;
+static QDir IMG_TMP_PATH;
 
-const char* publickeysFile = ".publickey";
+static const char* publickeysFile = ".publickey";
 
 struct data_view
 {
@@ -89,19 +87,20 @@ qt_srv_interface::qt_srv_interface(asio::io_service& _main_io_service,
         std::ifstream fin(fs.filePath(publickeysFile).toLocal8Bit().data(), std::ios_base::in | std::ios_base::binary);
         std::vector<char> buf_key, buf_ex;
         char size_buf[sizeof(uint16_t)];
+
         fin.read(size_buf, sizeof(uint16_t));
-        while (!fin.eof())
+        while (fin.good())
         {
             //read key
-            buf_key.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+            buf_key.resize(u16_from_data(size_buf));
             fin.read(buf_key.data(), buf_key.size());
-            if (fin.eof())
+            if (fin.fail())
                 break;
             //read extra data
             fin.read(size_buf, sizeof(uint16_t));
-            buf_ex.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+            buf_ex.resize(u16_from_data(size_buf));
             fin.read(buf_ex.data(), buf_ex.size());
-            if (fin.eof())
+            if (fin.fail())
                 break;
             //emplace
             certifiedKeys.emplace(std::string(buf_key.data(), buf_key.size()), std::string(buf_ex.data(), buf_ex.size()));
@@ -355,19 +354,20 @@ void qt_srv_interface::import_key(std::istream& fin)
 {
     std::vector<char> buf_key, buf_ex;
     char size_buf[sizeof(uint16_t)];
+
     fin.read(size_buf, sizeof(uint16_t));
-    while (!fin.eof())
+    while (fin.good())
     {
         //read key
-        buf_key.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+        buf_key.resize(u16_from_data(size_buf));
         fin.read(buf_key.data(), buf_key.size());
-        if (fin.eof())
+        if (fin.fail())
             break;
         //read extra data
         fin.read(size_buf, sizeof(uint16_t));
-        buf_ex.resize(static_cast<uint16_t>(size_buf[0]) | (size_buf[1] << 8));
+        buf_ex.resize(u16_from_data(size_buf));
         fin.read(buf_ex.data(), buf_ex.size());
-        if (fin.eof())
+        if (fin.fail())
             break;
         //emplace
         certifiedKeys.emplace(std::string(buf_key.data(), buf_key.size()), std::string(buf_ex.data(), buf_ex.size()));

@@ -9,7 +9,7 @@
 QString TEMP_PATH, DATA_PATH, DOWNLOAD_PATH;
 const QString EmptyQString;
 
-const char* privatekeyFile = ".privatekey";
+static const char* privatekeyFile = ".privatekey";
 
 bool compare_header(const char* data, const char* header)
 {
@@ -84,9 +84,11 @@ QtWindowInterface::QtWindowInterface(QGuiApplication& app)
     threadNetwork.start();
 
     qRegisterMetaType<std::shared_ptr<std::function<void()>>>("std::shared_ptr<std::function<void()>>");
-    connect(this, SIGNAL(selectIndex(int)), this, SLOT(OnSelectChanged(int)));
-    connect(this, SIGNAL(executeFunc(const std::shared_ptr<std::function<void()>>&)), this, SLOT(OnExecuteFunc(const std::shared_ptr<std::function<void()>>&)));
-    connect(&app, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(OnApplicationStateChanged(Qt::ApplicationState)));
+    connect(this, SIGNAL(selectIndex(int)), this, SLOT(onSelectChanged(int)));
+    connect(this, SIGNAL(executeFunc(const std::shared_ptr<std::function<void()>>&)), this, SLOT(onExecuteFunc(const std::shared_ptr<std::function<void()>>&)));
+    connect(&app, SIGNAL(applicationStateChanged(Qt::ApplicationState)), this, SLOT(onApplicationStateChanged(Qt::ApplicationState)));
+
+    LoadConnHistory();
 }
 
 QtWindowInterface::~QtWindowInterface()
@@ -100,6 +102,8 @@ QtWindowInterface::~QtWindowInterface()
 
     srv.reset();
     crypto_srv.reset();
+
+    SaveConnHistory();
 }
 
 void QtWindowInterface::RecvMsg(user_id_type id, const std::string& msg, const std::string& from)
@@ -277,7 +281,9 @@ void QtWindowInterface::connectTo(const QString& addr, const QString& port_str)
             throw(std::out_of_range("Port is not a number"));
         if (port < std::numeric_limits<port_type>::min() || port > std::numeric_limits<port_type>::max())
             throw(std::out_of_range("Port out of range"));
+
         srv->connect(addr.toStdString(), static_cast<port_type>(port));
+        AddConnHistory(addr.trimmed(), static_cast<port_type>(port));
     }
     catch (std::exception& ex)
     {
@@ -360,7 +366,7 @@ void QtWindowInterface::sendImg(const QUrl& url)
             file_size += fin.gcount();
             fout.write(buf.get(), fin.gcount());
             data.append(buf.get(), fin.gcount());
-            while (!fin.eof())
+            while (fin.good())
             {
                 fin.read(buf.get(), buf_size);
                 file_size += fin.gcount();
@@ -438,7 +444,7 @@ void QtWindowInterface::sendFile(const QUrl& url)
                 trans.sendTasks.emplace_back(data, path, blockCountAll, fileID);
                 fileProgress.push_back(0);
                 if (!sending)
-                    OnSendFileBlock(uID);
+                    SendFileBlock(uID);
 
                 ExecuteHandler([this, uID, path, fileID]() {
                     user_ext_type &usr = user_ext.at(uID);
@@ -461,6 +467,37 @@ void QtWindowInterface::reqFileProgress(int id)
         ExecuteHandlerMisc([this, id]() {
             emit notifyFileProgress(id, fileProgress.at(id));
         });
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::reqConnHistory()
+{
+    try
+    {
+        QStringList addr, port;
+        for (auto itr = connHistory.rbegin(), itrEnd = connHistory.rend(); itr != itrEnd; itr++)
+        {
+            addr.push_back(itr->first);
+            port.push_back(QString::number(itr->second));
+        }
+        emit refreshConnHistory(addr, port);
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::reqConnHistoryDel(int index)
+{
+    try
+    {
+        connHistory.erase(connHistory.end() - index - 1);
+        emit reqConnHistory();
     }
     catch (std::exception& ex)
     {
@@ -613,13 +650,17 @@ void QtWindowInterface::distrustKey(int index)
     }
 }
 
-void QtWindowInterface::OnApplicationStateChanged(Qt::ApplicationState state)
+void QtWindowInterface::onApplicationStateChanged(Qt::ApplicationState state)
 {
     try
     {
         bool is_in_background_now = ((state & (Qt::ApplicationInactive | Qt::ApplicationActive)) == 0);
         if (is_in_background && !is_in_background_now)
-            notifyClear();
+        {
+            ExecuteHandlerMisc([this]() {
+                notifyClear();
+            });
+        }
         is_in_background = is_in_background_now;
     }
     catch (std::exception& ex)
@@ -628,7 +669,7 @@ void QtWindowInterface::OnApplicationStateChanged(Qt::ApplicationState state)
     }
 }
 
-void QtWindowInterface::OnSelectChanged(int index)
+void QtWindowInterface::onSelectChanged(int index)
 {
     try
     {
@@ -669,7 +710,19 @@ void QtWindowInterface::OnSelectChanged(int index)
     }
 }
 
-void QtWindowInterface::OnSendFileBlock(int uID)
+void QtWindowInterface::onExecuteFunc(const std::shared_ptr<std::function<void ()> > &funcPtr)
+{
+    try
+    {
+        (*funcPtr)();
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+void QtWindowInterface::SendFileBlock(int uID)
 {
     try
     {
@@ -707,24 +760,12 @@ void QtWindowInterface::OnSendFileBlock(int uID)
                     emit notifyFileProgress(tID, progress);
             });
             ExecuteHandlerMisc([this, uID]() {
-                OnSendFileBlock(uID);
+                SendFileBlock(uID);
             });
         });
 
         if (task.fin.eof() || task.blockCount >= task.blockCountAll)
             tasks.pop_front();
-    }
-    catch (std::exception& ex)
-    {
-        srv->on_exception(ex);
-    }
-}
-
-void QtWindowInterface::OnExecuteFunc(const std::shared_ptr<std::function<void ()> > &funcPtr)
-{
-    try
-    {
-        (*funcPtr)();
     }
     catch (std::exception& ex)
     {
@@ -771,7 +812,7 @@ void QtWindowInterface::RefreshComments()
 {
     for (int i = 0; i < static_cast<int>(user_id_map.size()); i++)
     {
-        user_ext_type &usr = user_ext.at(user_id_map.at(i));
+        user_ext_type &usr = user_ext.at(user_id_map[i]);
         try
         {
             const std::string &comment = srv->get_key_ex(usr.key);
@@ -794,6 +835,62 @@ void QtWindowInterface::RefreshComments()
             usr.have_comment = false;
         }
     }
+}
+
+void QtWindowInterface::LoadConnHistory()
+{
+    std::ifstream fin(".connhistory");
+    char size_buf[sizeof(uint16_t)], port_buf[sizeof(port_type)];
+    std::vector<char> buf;
+
+    fin.read(size_buf, sizeof(uint16_t));
+    while (fin.good())
+    {
+        //read addr
+        buf.resize(u16_from_data(size_buf));
+        fin.read(buf.data(), buf.size());
+        if (fin.fail())
+            break;
+        //read port
+        fin.read(port_buf, sizeof(port_type));
+        //emplace
+        connHistory.emplace_back(QString::fromUtf8(buf.data(), buf.size()), u16_from_data(port_buf));
+        //read next size
+        fin.read(size_buf, sizeof(uint16_t));
+    }
+
+    fin.close();
+}
+
+void QtWindowInterface::SaveConnHistory()
+{
+    std::ofstream fout(".connhistory");
+
+    for (auto itr = connHistory.begin(), itrEnd = connHistory.end(); itr != itrEnd; itr++)
+    {
+        std::string addr = itr->first.toStdString();
+        port_type port = itr->second;
+        fout.put(static_cast<char>(addr.size()));
+        fout.put(static_cast<char>(addr.size() >> 8));
+        fout.write(addr.data(), addr.size());
+        fout.put(static_cast<char>(port));
+        fout.put(static_cast<char>(port >> 8));
+    }
+
+    fout.close();
+}
+
+void QtWindowInterface::AddConnHistory(const QString& addr, port_type port)
+{
+    for (auto itr = connHistory.begin(), itrEnd = connHistory.end(); itr != itrEnd; itr++)
+    {
+        if (itr->first == addr && itr->second == port)
+        {
+            connHistory.erase(itr);
+            break;
+        }
+    }
+    connHistory.emplace_back(addr, port);
 }
 
 #ifdef ANDROID

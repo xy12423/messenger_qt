@@ -89,8 +89,6 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.verticalCenterOffset: 0
 
                         text: fileName
                         verticalAlignment: TextField.AlignVCenter

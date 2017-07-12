@@ -2,4 +2,5 @@
 SOURCES += *.qml \
     ext_features/*.qml
 
-TRANSLATIONS += languages/messenger_qt_zh.ts
+TRANSLATIONS += languages/messenger_qt_zh.ts \
+    languages/messenger_qt_ja.ts

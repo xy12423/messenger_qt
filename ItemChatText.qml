@@ -21,7 +21,7 @@ MouseArea
 
         Text {
             width: cppInterface.windowWidth
-            leftPadding: 5
+            leftPadding: 7
             rightPadding: 5
 
             text: content
