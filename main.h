@@ -90,7 +90,7 @@ class QtWindowInterface : public QObject
     Q_PROPERTY(int windowWidth READ get_windowWidth WRITE set_windowWidth NOTIFY windowWidthChanged)
 
 private:
-    static constexpr int FileBlockLen = 0x80000;
+    static constexpr int FileBlockLen = 0x20000;
 
 public:
     QtWindowInterface(QGuiApplication& app);

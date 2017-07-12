@@ -12,25 +12,25 @@ class iosrvWorker : public QObject
 
 public:
     iosrvWorker(asio::io_service& _iosrv): iosrv(_iosrv) {}
+
+    void setWork(const std::shared_ptr<asio::io_service::work>& work) { watcher = work; }
 public slots:
     void run_iosrv() {
-        bool ok;
-        do
+        while (!watcher.expired())
         {
-            ok = true;
             try
             {
                 iosrv.run();
             }
-            catch (...) { ok = false; }
+            catch (...) {}
         }
-        while (!ok);
         emit on_stop();
     }
 signals:
     void on_stop();
 private:
     asio::io_service& iosrv;
+    std::weak_ptr<asio::io_service::work> watcher;
 };
 
 class iosrvThread : public QObject
@@ -39,7 +39,7 @@ class iosrvThread : public QObject
     QThread workerThread;
 public:
     iosrvThread() {
-        iosrvWorker *worker = new iosrvWorker(iosrv);
+        worker = new iosrvWorker(iosrv);
         worker->moveToThread(&workerThread);
         connect(&workerThread, SIGNAL(finished()), worker, SLOT(deleteLater()));
         connect(this, SIGNAL(do_start()), worker, SLOT(run_iosrv()));
@@ -54,7 +54,7 @@ public:
         workerThread.wait();
     }
 
-    void start() { iosrv_work = std::make_shared<asio::io_service::work>(iosrv); emit do_start(); stopped = false; }
+    void start() { iosrv_work = std::make_shared<asio::io_service::work>(iosrv); worker->setWork(iosrv_work); stopped = false; emit do_start(); }
     void stop() { iosrv_work.reset(); }
     bool is_stopped() { return stopped; }
 
@@ -65,6 +65,7 @@ public slots:
     void on_stop() { stopped = true; }
 private:
     asio::io_service iosrv;
+    iosrvWorker *worker;
     std::shared_ptr<asio::io_service::work> iosrv_work;
     volatile bool stopped = true;
 };

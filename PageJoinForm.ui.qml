@@ -16,14 +16,23 @@ Item {
     property int reqConnDelWatcher: 0
     property int reqConnDelIndex: -1
 
+    Text {
+        id: text_portWidthHelper
+        width: 0
+        height: textInput_port.height
+        visible: false
+
+        text: "00000"
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
 
         RowLayout {
             width: parent.width
-            Layout.preferredHeight: 24
-            Layout.maximumHeight: 24
+            Layout.preferredHeight: 30
+            Layout.maximumHeight: 45
             Layout.fillHeight: true
             Layout.fillWidth: true
 
@@ -36,7 +45,6 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 text: qsTr("Address:")
-                font.pixelSize: 12
             }
 
             Rectangle {
@@ -53,7 +61,6 @@ Item {
                     leftPadding: 5
                     rightPadding: 5
                     verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 12
                 }
             }
 
@@ -63,12 +70,11 @@ Item {
 
                 verticalAlignment: Text.AlignVCenter
                 text: qsTr("Port:")
-                font.pixelSize: 12
             }
 
             Rectangle {
                 height: parent.height
-                Layout.preferredWidth: 40
+                Layout.preferredWidth: text_portWidthHelper.contentWidth + 10
                 Layout.fillHeight: true
 
                 color: "#cccccc"
@@ -80,7 +86,6 @@ Item {
                     leftPadding: 5
                     rightPadding: 5
                     verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 12
 
                     text: "4826"
                 }
