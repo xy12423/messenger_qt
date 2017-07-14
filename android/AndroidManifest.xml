@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<manifest package="org.xy12423.messenger_qt" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.2.53" android:versionCode="53" android:installLocation="auto">
+<manifest package="org.xy12423.messenger_qt" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.2.54" android:versionCode="54" android:installLocation="auto">
     <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="messenger" android:icon="@drawable/icon">
         <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation" android:name="org.xy12423.messenger_qt.QtJavaInter" android:label="messenger" android:screenOrientation="unspecified" android:launchMode="singleTop">
             <intent-filter>

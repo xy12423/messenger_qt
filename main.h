@@ -180,6 +180,7 @@ public slots:
     //Others
     void reqConnHistory();
     void reqConnHistoryDel(int index);
+    void reqConnHistoryClr();
 
     void onApplicationStateChanged(Qt::ApplicationState state);
 private slots:

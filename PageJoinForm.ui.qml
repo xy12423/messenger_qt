@@ -5,8 +5,9 @@ import QtQuick.Layouts 1.3
 Item {
     width: 320
     height: 480
-    property alias button_cancel_conn: button_cancel_conn
     property alias button_conn: button_conn
+    property alias button_clrhis: button_clrhis
+    property alias button_cancel_conn: button_cancel_conn
     property alias textInput_addr: textInput_addr
     property alias textInput_port: textInput_port
     property alias listView_join: listView_join
@@ -158,6 +159,14 @@ Item {
                 Layout.fillHeight: true
                 Layout.fillWidth: true
                 text: qsTr("Connect")
+            }
+
+            Button {
+                id: button_clrhis
+                height: parent.height
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                text: qsTr("Clear History")
             }
 
             Button {

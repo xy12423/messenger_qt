@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>languages/messenger_qt_zh.qm</file>
+        <file>languages/messenger_qt_ja.qm</file>
     </qresource>
 </RCC>

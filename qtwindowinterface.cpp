@@ -505,6 +505,20 @@ void QtWindowInterface::reqConnHistoryDel(int index)
     }
 }
 
+void QtWindowInterface::reqConnHistoryClr()
+{
+    try
+    {
+        connHistory.clear();
+        emit reqConnHistory();
+    }
+    catch (std::exception& ex)
+    {
+        srv->on_exception(ex);
+    }
+}
+
+
 void QtWindowInterface::reqFilelist()
 {
     try

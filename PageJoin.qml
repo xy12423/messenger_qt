@@ -29,6 +29,10 @@ PageJoinForm {
         form_pagejoin.connectReqFinish()
     }
 
+    button_clrhis.onClicked: {
+        cppInterface.reqConnHistoryClr()
+    }
+
     button_cancel_conn.onClicked: {
         form_pagejoin.connectReqFinish()
     }

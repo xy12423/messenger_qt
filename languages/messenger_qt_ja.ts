@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="zh_CN">
+<TS version="2.1" language="ja_JP">
 <context>
     <name>ItemChatText</name>
     <message>
         <location filename="../ItemChatText.qml" line="35"/>
         <source>Text copied</source>
-        <translation>文字已复制</translation>
+        <translation>テキストのコピー完了</translation>
     </message>
 </context>
 <context>
@@ -14,17 +14,17 @@
     <message>
         <location filename="../PageChatForm.ui.qml" line="86"/>
         <source>Send</source>
-        <translation>发送</translation>
+        <translation>送信</translation>
     </message>
     <message>
         <location filename="../PageChatForm.ui.qml" line="94"/>
         <source>Image</source>
-        <translation>发送图片</translation>
+        <translation>画像送信</translation>
     </message>
     <message>
         <location filename="../PageChatForm.ui.qml" line="102"/>
         <source>File</source>
-        <translation>发送文件</translation>
+        <translation>ファイル送信</translation>
     </message>
 </context>
 <context>
@@ -33,12 +33,12 @@
         <location filename="../PageExt.qml" line="11"/>
         <location filename="../PageExt.qml" line="25"/>
         <source>Key management</source>
-        <translation>公钥管理</translation>
+        <translation>キー管理</translation>
     </message>
     <message>
         <location filename="../PageExt.qml" line="13"/>
         <source>File storage</source>
-        <translation>服务端文件存储</translation>
+        <translation>ファイルストレージ</translation>
     </message>
 </context>
 <context>
@@ -46,12 +46,12 @@
     <message>
         <location filename="../PageFileForm.ui.qml" line="115"/>
         <source>OK</source>
-        <translation>确认</translation>
+        <translation>確認</translation>
     </message>
     <message>
         <location filename="../PageFileForm.ui.qml" line="123"/>
         <source>Cancel</source>
-        <translation>取消</translation>
+        <translation>キャンセル</translation>
     </message>
 </context>
 <context>
@@ -59,12 +59,12 @@
     <message>
         <location filename="../ext_features/PageFileStorageForm.ui.qml" line="61"/>
         <source>Download</source>
-        <translation>下载</translation>
+        <translation>ダウンロード</translation>
     </message>
     <message>
         <location filename="../ext_features/PageFileStorageForm.ui.qml" line="69"/>
         <source>Cancel</source>
-        <translation>取消</translation>
+        <translation>キャンセル</translation>
     </message>
 </context>
 <context>
@@ -72,12 +72,12 @@
     <message>
         <location filename="../PageImgForm.ui.qml" line="115"/>
         <source>OK</source>
-        <translation>确认</translation>
+        <translation>確認</translation>
     </message>
     <message>
         <location filename="../PageImgForm.ui.qml" line="123"/>
         <source>Cancel</source>
-        <translation>取消</translation>
+        <translation>キャンセル</translation>
     </message>
 </context>
 <context>
@@ -85,27 +85,27 @@
     <message>
         <location filename="../PageJoinForm.ui.qml" line="47"/>
         <source>Address:</source>
-        <translation>地址:</translation>
+        <translation>アドレス:</translation>
     </message>
     <message>
         <location filename="../PageJoinForm.ui.qml" line="72"/>
         <source>Port:</source>
-        <translation>端口:</translation>
+        <translation>ポート:</translation>
     </message>
     <message>
         <location filename="../PageJoinForm.ui.qml" line="160"/>
         <source>Connect</source>
-        <translation>连接</translation>
+        <translation>接続</translation>
     </message>
     <message>
         <location filename="../PageJoinForm.ui.qml" line="168"/>
         <source>Clear History</source>
-        <translation>清除连接历史</translation>
+        <translation>履歴クリア</translation>
     </message>
     <message>
         <location filename="../PageJoinForm.ui.qml" line="176"/>
         <source>Cancel</source>
-        <translation>取消</translation>
+        <translation>キャンセル</translation>
     </message>
 </context>
 <context>
@@ -113,22 +113,22 @@
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="84"/>
         <source>Trust</source>
-        <translation>添加信任</translation>
+        <translation>信頼</translation>
     </message>
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="91"/>
         <source>Distrust</source>
-        <translation>取消信任</translation>
+        <translation>不信</translation>
     </message>
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="98"/>
         <source>Import</source>
-        <translation>导入公钥</translation>
+        <translation>インポート</translation>
     </message>
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="105"/>
         <source>Export</source>
-        <translation>导出公钥</translation>
+        <translation>エクスポート</translation>
     </message>
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="112"/>
@@ -138,7 +138,7 @@
     <message>
         <location filename="../ext_features/PageKeyManForm.ui.qml" line="119"/>
         <source>Back</source>
-        <translation>返回</translation>
+        <translation>戻る</translation>
     </message>
 </context>
 <context>
@@ -146,12 +146,12 @@
     <message>
         <location filename="../PageListForm.ui.qml" line="62"/>
         <source>Connect</source>
-        <translation>连接</translation>
+        <translation>接続</translation>
     </message>
     <message>
         <location filename="../PageListForm.ui.qml" line="69"/>
         <source>Disconnect</source>
-        <translation>断开</translation>
+        <translation>切断</translation>
     </message>
 </context>
 <context>
@@ -164,17 +164,17 @@
     <message>
         <location filename="../main.qml" line="166"/>
         <source>User list</source>
-        <translation>用户列表</translation>
+        <translation>ユーザーリスト</translation>
     </message>
     <message>
         <location filename="../main.qml" line="169"/>
         <source>Chat</source>
-        <translation>聊天</translation>
+        <translation>チャット</translation>
     </message>
     <message>
         <location filename="../main.qml" line="172"/>
         <source>Extra</source>
-        <translation>其他功能</translation>
+        <translation>エクストラ</translation>
     </message>
 </context>
 </TS>
